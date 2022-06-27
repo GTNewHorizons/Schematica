@@ -5,7 +5,7 @@
 	"version": "${modVersion}",
 	"mcversion": "${minecraftVersion}",
 	"authorList": ["Lunatrius"],
-	"credits": "AbrarSyed, AtomicBlom, bombcar, Kamesuta, Kiwi233, Mist475, Johann Bernhardt , UltraMoogleMan",
+	"credits": "AbrarSyed, Adaptivity, AtomicBlom, bilde2910, bombcar, cltnschlosser, inpixies, Johann Bernhardt, Kamesuta, Kiwi233, MattBDev, mist475, Moravuscz, qb20nh, ShaRose, Tatara88, ThranMaru, UltraMoogleMan",
 	"dependants": [  ],
 	"dependencies": [ "LunatriusCore@[1.1.5,)" ],
 	"parent": "",

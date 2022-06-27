@@ -48,6 +48,7 @@ public class GuiSchematicControl extends GuiScreenBase {
     private final String strSaveCoordinates = I18n.format(Names.Gui.Control.SAVE_COORDINATES);
     private final String strMoveSchematic = I18n.format(Names.Gui.Control.MOVE_SCHEMATIC);
     private final String strOperations = I18n.format(Names.Gui.Control.OPERATIONS);
+    private final String strName = I18n.format(Names.Gui.Control.NAME);
     private final String strUnload = I18n.format(Names.Gui.Control.UNLOAD);
     private final String strAll = I18n.format(Names.Gui.Control.MODE_ALL);
     private final String strLayers = I18n.format(Names.Gui.Control.MODE_LAYERS);
@@ -253,6 +254,10 @@ public class GuiSchematicControl extends GuiScreenBase {
         drawCenteredString(this.fontRendererObj, this.strPrinter, 50, this.height - 45, 0xFFFFFF);
         drawCenteredString(this.fontRendererObj, this.strLayers, this.width - 50, this.height - 165, 0xFFFFFF);
         drawCenteredString(this.fontRendererObj, this.strOperations, this.width - 50, this.height - 120, 0xFFFFFF);
+        if (this.schematic != null) {
+            drawCenteredString(
+                    this.fontRendererObj, this.strName + ": " + this.schematic.name, 40, this.height - 195, 0xFFFFFF);
+        }
 
         drawString(this.fontRendererObj, this.strX, this.centerX - 65, this.centerY - 24, 0xFFFFFF);
         drawString(this.fontRendererObj, this.strY, this.centerX - 65, this.centerY + 1, 0xFFFFFF);

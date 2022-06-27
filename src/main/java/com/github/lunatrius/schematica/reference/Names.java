@@ -160,6 +160,8 @@ public final class Names {
             public static final String PRINTER = "schematica.gui.printer";
             public static final String OPERATIONS = "schematica.gui.operations";
 
+            public static final String NAME = "schematica.gui.name";
+
             public static final String UNLOAD = "schematica.gui.unload";
             public static final String MODE_ALL = "schematica.gui.all";
             public static final String MODE_LAYERS = "schematica.gui.layers";

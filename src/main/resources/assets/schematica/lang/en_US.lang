@@ -13,6 +13,7 @@ schematica.gui.movehere=Move here
 schematica.gui.flip=Flip
 schematica.gui.rotate=Rotate
 schematica.gui.save=Save
+schematica.gui.name=Name
 schematica.gui.savecoordinates=Save Coordinates
 schematica.gui.moveschematic=Move schematic
 schematica.gui.layers=Layers

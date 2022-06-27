@@ -282,7 +282,9 @@ public class SchematicPrinter {
             return true;
         }
 
-        // TODO: LOTR mod chisel, plates, weapon racks
+        if (ClientProxy.lotrProxy.isBlackListed(block, itemStack)) {
+            return true;
+        }
 
         return false;
     }

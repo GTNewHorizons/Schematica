@@ -6,6 +6,8 @@ import com.github.lunatrius.schematica.api.ISchematic;
 import com.github.lunatrius.schematica.client.printer.SchematicPrinter;
 import com.github.lunatrius.schematica.client.renderer.RendererSchematicGlobal;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
+import com.github.lunatrius.schematica.compat.ILOTRPresent;
+import com.github.lunatrius.schematica.compat.NoLOTRProxy;
 import com.github.lunatrius.schematica.handler.ConfigurationHandler;
 import com.github.lunatrius.schematica.handler.client.*;
 import com.github.lunatrius.schematica.reference.Constants;
@@ -17,7 +19,9 @@ import com.google.gson.reflect.TypeToken;
 import cpw.mods.fml.client.config.GuiConfigEntries;
 import cpw.mods.fml.client.registry.ClientRegistry;
 import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
+import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import java.io.File;
 import java.io.FileWriter;
@@ -51,6 +55,7 @@ public class ClientProxy extends CommonProxy {
     public static SchematicWorld schematic = null;
     public static MovingObjectPosition movingObjectPosition = null;
     private final SchematicWorld schematicWorld = null;
+    public static ILOTRPresent lotrProxy = null;
 
     public static void setPlayerData(EntityPlayer player, float partialTicks) {
         playerPosition.x = player.lastTickPosX + (player.posX - player.lastTickPosX) * partialTicks;
@@ -290,6 +295,24 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(ChatEventHandler.INSTANCE);
         MinecraftForge.EVENT_BUS.register(new OverlayHandler());
         MinecraftForge.EVENT_BUS.register(new WorldHandler());
+    }
+
+    @Override
+    public void postInit(FMLPostInitializationEvent event) {
+        super.postInit(event);
+        try {
+            if (Loader.isModLoaded("lotr")) {
+                Reference.logger.info("Lotr mod detected, creating proxy");
+                lotrProxy = Class.forName(Reference.LOTR_PROXY)
+                        .asSubclass(ILOTRPresent.class)
+                        .newInstance();
+            } else {
+                lotrProxy = new NoLOTRProxy();
+            }
+        } catch (Exception e) {
+            Reference.logger.warn("Failed to create lotr proxy in the normal way");
+            lotrProxy = new NoLOTRProxy();
+        }
     }
 
     @Override

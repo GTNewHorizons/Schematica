@@ -255,8 +255,8 @@ public class GuiSchematicControl extends GuiScreenBase {
         drawCenteredString(this.fontRendererObj, this.strLayers, this.width - 50, this.height - 165, 0xFFFFFF);
         drawCenteredString(this.fontRendererObj, this.strOperations, this.width - 50, this.height - 120, 0xFFFFFF);
         if (this.schematic != null) {
-            drawCenteredString(
-                    this.fontRendererObj, this.strName + ": " + this.schematic.name, 40, this.height - 195, 0xFFFFFF);
+            drawString(
+                    this.fontRendererObj, this.strName + ": " + this.schematic.name, 10, this.height - 195, 0xFFFFFF);
         }
 
         drawString(this.fontRendererObj, this.strX, this.centerX - 65, this.centerY - 24, 0xFFFFFF);

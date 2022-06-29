@@ -14,6 +14,7 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
+import net.minecraft.profiler.Profiler;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityChest;
 import net.minecraft.tileentity.TileEntitySkull;
@@ -40,7 +41,7 @@ public class SchematicWorld extends World {
     public int renderingLayer;
 
     public SchematicWorld(ISchematic schematic) {
-        super(new SaveHandlerSchematic(), "Schematica", WORLD_SETTINGS, null, null);
+        super(new SaveHandlerSchematic(), "Schematica", WORLD_SETTINGS, null, new Profiler());
         this.schematic = schematic;
 
         for (TileEntity tileEntity : schematic.getTileEntities()) {

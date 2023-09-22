@@ -22,6 +22,7 @@ import com.github.lunatrius.schematica.proxy.ClientProxy;
 import com.github.lunatrius.schematica.reference.Names;
 import com.github.lunatrius.schematica.reference.Reference;
 import com.github.lunatrius.schematica.util.ItemStackSortType;
+
 import cpw.mods.fml.client.config.GuiUnicodeGlyphButton;
 
 public class GuiSchematicMaterials extends GuiScreenBase {

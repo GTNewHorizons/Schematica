@@ -1,6 +1,7 @@
 package com.github.lunatrius.schematica.api.event;
 
 import com.github.lunatrius.schematica.api.ISchematic;
+
 import cpw.mods.fml.common.eventhandler.Event;
 
 /**

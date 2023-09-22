@@ -10,16 +10,15 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.common.util.Constants;
 
-import scala.Option;
-import scala.collection.Iterable;
-import scala.collection.JavaConversions;
-import scala.collection.mutable.Map;
-
 import com.github.lunatrius.schematica.reference.Reference;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.relauncher.ReflectionHelper;
+import scala.Option;
+import scala.collection.Iterable;
+import scala.collection.JavaConversions;
+import scala.collection.mutable.Map;
 
 public class ForgeMultipart {
 

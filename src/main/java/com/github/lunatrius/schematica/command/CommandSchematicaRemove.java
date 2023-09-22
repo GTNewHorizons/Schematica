@@ -3,8 +3,6 @@ package com.github.lunatrius.schematica.command;
 import java.io.File;
 import java.util.Arrays;
 
-import joptsimple.internal.Strings;
-
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.command.WrongUsageException;
@@ -22,6 +20,8 @@ import com.github.lunatrius.schematica.reference.Reference;
 import com.github.lunatrius.schematica.util.FileUtils;
 import com.google.common.base.Charsets;
 import com.google.common.hash.Hashing;
+
+import joptsimple.internal.Strings;
 
 public class CommandSchematicaRemove extends CommandSchematicaBase {
 

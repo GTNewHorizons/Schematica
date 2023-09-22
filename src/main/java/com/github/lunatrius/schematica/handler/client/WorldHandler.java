@@ -6,6 +6,7 @@ import net.minecraftforge.event.world.WorldEvent;
 
 import com.github.lunatrius.schematica.client.world.SchematicUpdater;
 import com.github.lunatrius.schematica.reference.Reference;
+
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 public class WorldHandler {

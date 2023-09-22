@@ -5,6 +5,7 @@ import java.util.Map;
 import net.minecraft.nbt.NBTTagCompound;
 
 import com.github.lunatrius.schematica.api.ISchematic;
+
 import cpw.mods.fml.common.eventhandler.Event;
 
 /**

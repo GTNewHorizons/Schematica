@@ -11,6 +11,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
 import com.github.lunatrius.schematica.reference.Names;
 import com.github.lunatrius.schematica.reference.Reference;
+
 import cpw.mods.fml.common.registry.GameData;
 
 public final class SchematicUtil {

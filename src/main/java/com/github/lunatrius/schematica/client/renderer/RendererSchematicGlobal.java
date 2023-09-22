@@ -17,6 +17,7 @@ import com.github.lunatrius.core.util.vector.Vector3d;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
 import com.github.lunatrius.schematica.proxy.ClientProxy;
 import com.github.lunatrius.schematica.reference.Constants;
+
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 public class RendererSchematicGlobal {

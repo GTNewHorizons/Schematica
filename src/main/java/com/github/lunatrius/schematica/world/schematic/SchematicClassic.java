@@ -2,9 +2,9 @@ package com.github.lunatrius.schematica.world.schematic;
 
 import net.minecraft.nbt.NBTTagCompound;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
 import com.github.lunatrius.schematica.api.ISchematic;
+
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 // TODO: http://minecraft.gamepedia.com/Data_values_%28Classic%29
 public class SchematicClassic extends SchematicFormat {

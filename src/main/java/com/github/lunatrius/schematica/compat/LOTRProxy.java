@@ -1,9 +1,9 @@
 package com.github.lunatrius.schematica.compat;
 
-import lotr.common.LOTRMod;
-
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
+
+import lotr.common.LOTRMod;
 
 public class LOTRProxy implements ILOTRPresent {
 

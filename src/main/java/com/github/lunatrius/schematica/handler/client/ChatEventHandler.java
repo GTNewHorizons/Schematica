@@ -6,6 +6,7 @@ import com.github.lunatrius.schematica.Schematica;
 import com.github.lunatrius.schematica.client.printer.SchematicPrinter;
 import com.github.lunatrius.schematica.reference.Names;
 import com.github.lunatrius.schematica.reference.Reference;
+
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 public class ChatEventHandler {

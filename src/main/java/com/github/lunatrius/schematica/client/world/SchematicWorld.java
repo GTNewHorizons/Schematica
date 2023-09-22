@@ -47,6 +47,7 @@ public class SchematicWorld extends World {
     public boolean isRendering;
     public boolean isRenderingLayer;
     public int renderingLayer;
+    public int rotationState;
 
     public SchematicWorld(ISchematic schematic) {
         super(new SaveHandlerSchematic(), "Schematica", WORLD_SETTINGS, null, new Profiler());
@@ -260,7 +261,10 @@ public class SchematicWorld extends World {
 
             schematicRotated.setTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);
         }
-
+        rotationState++;
+        if (rotationState > 3) {
+            rotationState = 0;
+        }
         this.schematic = schematicRotated;
 
         refreshChests();

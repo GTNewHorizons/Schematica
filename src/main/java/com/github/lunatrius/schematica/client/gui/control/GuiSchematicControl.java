@@ -262,7 +262,8 @@ public class GuiSchematicControl extends GuiScreenBase {
                             this.schematic.name,
                             this.numericX.getValue(),
                             this.numericY.getValue(),
-                            this.numericZ.getValue())) {
+                            this.numericZ.getValue(),
+                            this.schematic.rotationState)) {
                         mc.thePlayer.addChatMessage(new ChatComponentText(strSaveCoordinatesSuccess));
                     } else {
                         mc.thePlayer.addChatMessage(new ChatComponentText(strSaveCoordinatesFail));

@@ -15,13 +15,14 @@ import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.lwjgl.Sys;
 
 import com.github.lunatrius.core.client.gui.GuiScreenBase;
 import com.github.lunatrius.schematica.FileFilterSchematic;
 import com.github.lunatrius.schematica.Schematica;
+import com.github.lunatrius.schematica.client.printer.SchematicPrinter;
+import com.github.lunatrius.schematica.client.renderer.RendererSchematicGlobal;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
 import com.github.lunatrius.schematica.handler.ConfigurationHandler;
 import com.github.lunatrius.schematica.proxy.ClientProxy;
@@ -172,7 +173,7 @@ public class GuiSchematicLoad extends GuiScreenBase {
                 if (Schematica.proxy.loadSchematic(null, this.currentDirectory, schematicEntry.getName())) {
                     SchematicWorld schematic = ClientProxy.schematic;
                     if (schematic != null) {
-                        ImmutablePair<Boolean, ImmutableTriple<Integer, Integer, Integer>> schematicCoordinate = ClientProxy
+                        ImmutableTriple<Boolean, Integer, ImmutableTriple<Integer, Integer, Integer>> schematicCoordinate = ClientProxy
                                 .getCoordinates(worldServerName(this.mc), schematic.name);
                         if (schematicCoordinate.left) {
                             ClientProxy.moveSchematic(
@@ -180,6 +181,11 @@ public class GuiSchematicLoad extends GuiScreenBase {
                                     schematicCoordinate.right.left,
                                     schematicCoordinate.right.middle,
                                     schematicCoordinate.right.right);
+                            for (int i = 0; i < schematicCoordinate.middle; i++) {
+                                schematic.rotate();
+                            }
+                            RendererSchematicGlobal.INSTANCE.createRendererSchematicChunks(schematic);
+                            SchematicPrinter.INSTANCE.refresh();
                         } else {
                             ClientProxy.moveSchematicToPlayer(schematic);
                         }

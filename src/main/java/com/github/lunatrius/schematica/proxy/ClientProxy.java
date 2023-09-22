@@ -206,8 +206,8 @@ public class ClientProxy extends CommonProxy {
         }
     }
 
-    public static boolean addCoordinates(String worldServerName, String schematicName, Integer X, Integer Y,
-            Integer Z) {
+    public static boolean addCoordinates(String worldServerName, String schematicName, Integer X, Integer Y, Integer Z,
+            Integer rotation) {
         try {
             Map<String, Map<String, Map<String, Integer>>> coordinates = openCoordinatesFile();
             if (coordinates.containsKey(worldServerName)) {
@@ -217,6 +217,7 @@ public class ClientProxy extends CommonProxy {
                         put("X", X);
                         put("Y", Y);
                         put("Z", Z);
+                        put("Rotation", rotation);
                     }
                 });
             } else {
@@ -229,6 +230,7 @@ public class ClientProxy extends CommonProxy {
                                 put("X", X);
                                 put("Y", Y);
                                 put("Z", Z);
+                                put("Rotation", rotation);
                             }
                         });
                     }
@@ -247,7 +249,7 @@ public class ClientProxy extends CommonProxy {
      * @return {@link ImmutablePair} with bool (true if coordinates found, false if not) and {@link ImmutableTriple}
      *         storing X,Y,Z {@link Integer}
      */
-    public static ImmutablePair<Boolean, ImmutableTriple<Integer, Integer, Integer>> getCoordinates(
+    public static ImmutableTriple<Boolean, Integer, ImmutableTriple<Integer, Integer, Integer>> getCoordinates(
             String worldServerName, String schematicName) {
         try {
             Map<String, Map<String, Map<String, Integer>>> coordinates = openCoordinatesFile();
@@ -257,8 +259,9 @@ public class ClientProxy extends CommonProxy {
                     Map<String, Integer> coordinateMap = schematicMap.get(schematicName);
                     if (coordinateMap.containsKey("X") && coordinateMap.containsKey("Y")
                             && coordinateMap.containsKey("Z")) {
-                        return new ImmutablePair<>(
+                        return new ImmutableTriple<>(
                                 true,
+                                coordinateMap.get("Rotation"),
                                 new ImmutableTriple<>(
                                         coordinateMap.get("X"),
                                         coordinateMap.get("Y"),
@@ -266,10 +269,10 @@ public class ClientProxy extends CommonProxy {
                     }
                 }
             }
-            return new ImmutablePair<>(false, null);
+            return new ImmutableTriple<>(false, null, null);
         } catch (Exception e) {
 
-            return new ImmutablePair<>(false, null);
+            return new ImmutableTriple<>(false, null, null);
         }
     }
 

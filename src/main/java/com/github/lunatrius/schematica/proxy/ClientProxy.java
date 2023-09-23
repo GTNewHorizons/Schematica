@@ -17,7 +17,6 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Property;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 
 import com.github.lunatrius.core.util.vector.Vector3d;
@@ -211,8 +210,8 @@ public class ClientProxy extends CommonProxy {
         }
     }
 
-    public static boolean addCoordinatesAndRotation(String worldServerName, String schematicName, Integer X, Integer Y, Integer Z,
-            Integer rotation) {
+    public static boolean addCoordinatesAndRotation(String worldServerName, String schematicName, Integer X, Integer Y,
+            Integer Z, Integer rotation) {
         try {
             Map<String, Map<String, Map<String, Integer>>> coordinates = openCoordinatesFile();
             if (coordinates.containsKey(worldServerName)) {
@@ -251,10 +250,9 @@ public class ClientProxy extends CommonProxy {
     /**
      * gets the coordinates if present
      *
-     * @return {@link ImmutableTriple} with bool (true if coordinates found, false if not),
-     * {@link Integer} rotation (number of times schematic has been rotated [0-3]),
-     * and {@link ImmutableTriple}
-     *         storing X,Y,Z {@link Integer}
+     * @return {@link ImmutableTriple} with bool (true if coordinates found, false if not), {@link Integer} rotation
+     *         (number of times schematic has been rotated [0-3]), and {@link ImmutableTriple} storing X,Y,Z
+     *         {@link Integer}
      */
     public static ImmutableTriple<Boolean, Integer, ImmutableTriple<Integer, Integer, Integer>> getCoordinates(
             String worldServerName, String schematicName) {

@@ -211,7 +211,7 @@ public class ClientProxy extends CommonProxy {
         }
     }
 
-    public static boolean addCoordinates(String worldServerName, String schematicName, Integer X, Integer Y, Integer Z,
+    public static boolean addCoordinatesAndRotation(String worldServerName, String schematicName, Integer X, Integer Y, Integer Z,
             Integer rotation) {
         try {
             Map<String, Map<String, Map<String, Integer>>> coordinates = openCoordinatesFile();
@@ -251,7 +251,9 @@ public class ClientProxy extends CommonProxy {
     /**
      * gets the coordinates if present
      *
-     * @return {@link ImmutablePair} with bool (true if coordinates found, false if not) and {@link ImmutableTriple}
+     * @return {@link ImmutableTriple} with bool (true if coordinates found, false if not),
+     * {@link Integer} rotation (number of times schematic has been rotated [0-3]),
+     * and {@link ImmutableTriple}
      *         storing X,Y,Z {@link Integer}
      */
     public static ImmutableTriple<Boolean, Integer, ImmutableTriple<Integer, Integer, Integer>> getCoordinates(

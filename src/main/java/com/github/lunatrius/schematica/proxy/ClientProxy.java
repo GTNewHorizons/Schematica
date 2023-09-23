@@ -266,7 +266,7 @@ public class ClientProxy extends CommonProxy {
                             && coordinateMap.containsKey("Z")) {
                         return new ImmutableTriple<>(
                                 true,
-                                coordinateMap.get("Rotation"),
+                                coordinateMap.getOrDefault("Rotation", 0),
                                 new ImmutableTriple<>(
                                         coordinateMap.get("X"),
                                         coordinateMap.get("Y"),

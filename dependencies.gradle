@@ -2,5 +2,5 @@
 
 dependencies {
 	implementation('com.github.GTNewHorizons:LunatriusCore:1.2.0-GTNH:dev')
-    implementation rfg.deobf('curse.maven:lotr-423748:4091561')
+    compileOnly rfg.deobf('curse.maven:lotr-423748:4091561')
 }

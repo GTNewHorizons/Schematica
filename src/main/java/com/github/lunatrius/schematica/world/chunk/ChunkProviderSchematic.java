@@ -6,6 +6,7 @@ import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.util.IProgressUpdate;
 import net.minecraft.world.ChunkPosition;
 import net.minecraft.world.World;
+import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.EmptyChunk;
 import net.minecraft.world.chunk.IChunkProvider;
@@ -57,7 +58,7 @@ public class ChunkProviderSchematic implements IChunkProvider {
     }
 
     @Override
-    public List getPossibleCreatures(EnumCreatureType creatureType, int x, int y, int z) {
+    public List<BiomeGenBase.SpawnListEntry> getPossibleCreatures(EnumCreatureType creatureType, int x, int y, int z) {
         return null;
     }
 

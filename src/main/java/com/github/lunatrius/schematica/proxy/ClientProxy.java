@@ -178,7 +178,6 @@ public class ClientProxy extends CommonProxy {
             try (Reader reader = Files.newBufferedReader(
                     new File(ConfigurationHandler.schematicDirectory, Constants.Files.Coordinates + ".json")
                             .toPath())) {
-                // Map<?,?> test = gson.fromJson(reader, Map.class);
                 coordinates = gson
                         .fromJson(reader, new TypeToken<Map<String, Map<String, Map<String, Integer>>>>() {}.getType());
             } catch (Exception e) {
@@ -215,7 +214,7 @@ public class ClientProxy extends CommonProxy {
         try {
             Map<String, Map<String, Map<String, Integer>>> coordinates = openCoordinatesFile();
             if (coordinates.containsKey(worldServerName)) {
-                coordinates.get(worldServerName).put(schematicName, new HashMap<String, Integer>() {
+                coordinates.get(worldServerName).put(schematicName, new HashMap<>() {
 
                     {
                         put("X", X);
@@ -225,10 +224,10 @@ public class ClientProxy extends CommonProxy {
                     }
                 });
             } else {
-                coordinates.put(worldServerName, new HashMap<String, Map<String, Integer>>() {
+                coordinates.put(worldServerName, new HashMap<>() {
 
                     {
-                        put(schematicName, new HashMap<String, Integer>() {
+                        put(schematicName, new HashMap<>() {
 
                             {
                                 put("X", X);
@@ -317,7 +316,8 @@ public class ClientProxy extends CommonProxy {
         try {
             if (Loader.isModLoaded("lotr")) {
                 Reference.logger.info("Lotr mod detected, creating proxy");
-                lotrProxy = Class.forName(Reference.LOTR_PROXY).asSubclass(ILOTRPresent.class).newInstance();
+                lotrProxy = Class.forName(Reference.LOTR_PROXY).asSubclass(ILOTRPresent.class).getDeclaredConstructor()
+                        .newInstance();
             } else {
                 lotrProxy = new NoLOTRProxy();
             }

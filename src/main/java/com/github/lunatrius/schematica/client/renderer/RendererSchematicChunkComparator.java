@@ -20,7 +20,7 @@ public class RendererSchematicChunkComparator implements Comparator<RendererSche
         } else {
             final double dist1 = this.position.lengthSquaredTo(rendererSchematicChunk1.centerPosition);
             final double dist2 = this.position.lengthSquaredTo(rendererSchematicChunk2.centerPosition);
-            return dist1 > dist2 ? 1 : (dist1 < dist2 ? -1 : 0);
+            return Double.compare(dist1, dist2);
         }
     }
 

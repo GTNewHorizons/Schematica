@@ -18,7 +18,7 @@ public class BlockList {
 
     public List<WrappedItemStack> getList(final EntityPlayer player, final SchematicWorld world,
             final WorldClient mcWorld) {
-        final List<WrappedItemStack> blockList = new ArrayList<WrappedItemStack>();
+        final List<WrappedItemStack> blockList = new ArrayList<>();
 
         if (world == null) {
             return blockList;

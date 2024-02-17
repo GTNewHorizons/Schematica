@@ -23,7 +23,7 @@ public class DownloadHandler {
 
     public ISchematic schematic = null;
 
-    public final Map<EntityPlayerMP, SchematicTransfer> transferMap = new LinkedHashMap<EntityPlayerMP, SchematicTransfer>();
+    public final Map<EntityPlayerMP, SchematicTransfer> transferMap = new LinkedHashMap<>();
 
     private DownloadHandler() {}
 
@@ -37,7 +37,7 @@ public class DownloadHandler {
     }
 
     private void processQueue() {
-        if (this.transferMap.size() == 0) {
+        if (this.transferMap.isEmpty()) {
             return;
         }
 

@@ -13,7 +13,6 @@ import net.minecraft.block.BlockHopper;
 import net.minecraft.block.BlockPistonBase;
 import net.minecraft.block.BlockPumpkin;
 import net.minecraft.block.BlockRotatedPillar;
-import net.minecraft.block.BlockSlab;
 import net.minecraft.block.BlockStairs;
 import net.minecraft.block.BlockTorch;
 import net.minecraft.init.Blocks;
@@ -25,26 +24,17 @@ public class PlacementRegistry {
 
     public static final PlacementRegistry INSTANCE = new PlacementRegistry();
 
-    private final Map<Class<? extends Block>, PlacementData> classPlacementMap = new HashMap<Class<? extends Block>, PlacementData>();
-    private final Map<Block, PlacementData> blockPlacementMap = new HashMap<Block, PlacementData>();
-    private final Map<Item, PlacementData> itemPlacementMap = new HashMap<Item, PlacementData>();
+    private final Map<Class<? extends Block>, PlacementData> classPlacementMap = new HashMap<>();
+    private final Map<Block, PlacementData> blockPlacementMap = new HashMap<>();
+    private final Map<Item, PlacementData> itemPlacementMap = new HashMap<>();
 
     public void populatePlacementMaps() {
         this.classPlacementMap.clear();
         this.blockPlacementMap.clear();
         this.itemPlacementMap.clear();
 
-        final IExtraClick extraClickDoubleSlab = new IExtraClick() {
+        final IExtraClick extraClickDoubleSlab = (block, metadata) -> block.isOpaqueCube() ? 1 : 0;
 
-            @Override
-            public int getExtraClicks(Block block, int metadata) {
-                return ((BlockSlab) block).isOpaqueCube() ? 1 : 0;
-            }
-        };
-
-        /**
-         * minecraft
-         */
         addPlacementMapping(
                 BlockButton.class,
                 new PlacementData(PlacementData.PlacementType.BLOCK, -1, -1, 3, 4, 1, 2).setMaskMeta(0x7));

@@ -34,7 +34,7 @@ public class GuiSchematicLoad extends GuiScreenBase {
 
     private static final FileFilterSchematic FILE_FILTER_FOLDER = new FileFilterSchematic(true);
     private static final FileFilterSchematic FILE_FILTER_SCHEMATIC = new FileFilterSchematic(false);
-    protected final List<GuiSchematicEntry> schematicFiles = new ArrayList<GuiSchematicEntry>();
+    protected final List<GuiSchematicEntry> schematicFiles = new ArrayList<>();
     private final String strTitle = I18n.format(Names.Gui.Load.TITLE);
     private final String strFolderInfo = I18n.format(Names.Gui.Load.FOLDER_INFO);
     protected File currentDirectory = ConfigurationHandler.schematicDirectory;
@@ -74,7 +74,7 @@ public class GuiSchematicLoad extends GuiScreenBase {
                 boolean retry = false;
 
                 try {
-                    Class c = Class.forName("java.awt.Desktop");
+                    Class<?> c = Class.forName("java.awt.Desktop");
                     Object m = c.getMethod("getDesktop").invoke(null);
                     c.getMethod("browse", URI.class).invoke(m, ConfigurationHandler.schematicDirectory.toURI());
                 } catch (Throwable e) {
@@ -106,11 +106,6 @@ public class GuiSchematicLoad extends GuiScreenBase {
         super.drawScreen(x, y, partialTicks);
     }
 
-    @Override
-    public void onGuiClosed() {
-        // loadSchematic();
-    }
-
     protected void changeDirectory(String directory) {
         this.currentDirectory = new File(this.currentDirectory, directory);
 
@@ -118,8 +113,8 @@ public class GuiSchematicLoad extends GuiScreenBase {
     }
 
     protected void reloadSchematics() {
-        String name = null;
-        Item item = null;
+        String name;
+        Item item;
 
         this.schematicFiles.clear();
 

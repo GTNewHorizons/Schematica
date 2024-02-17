@@ -215,7 +215,7 @@ public class SchematicPrinter {
     }
 
     private ForgeDirection[] getSolidSides(World world, int x, int y, int z) {
-        List<ForgeDirection> list = new ArrayList<ForgeDirection>();
+        List<ForgeDirection> list = new ArrayList<>();
 
         for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
             if (isSolid(world, x, y, z, side)) {
@@ -255,7 +255,6 @@ public class SchematicPrinter {
                 extraClicks = data.getExtraClicks(block, metadata);
             } else {
                 direction = solidSides[0];
-                extraClicks = 0;
             }
 
             if (!swapToItem(player.inventory, itemStack)) {
@@ -323,7 +322,6 @@ public class SchematicPrinter {
     private boolean placeBlock(World world, EntityPlayer player, int x, int y, int z, ForgeDirection direction,
             float offsetX, float offsetY, float offsetZ, int extraClicks) {
         ItemStack itemStack = player.getCurrentEquippedItem();
-        boolean success = false;
 
         if (!this.minecraft.playerController.isInCreativeMode() && itemStack != null
                 && itemStack.stackSize <= extraClicks) {
@@ -337,7 +335,7 @@ public class SchematicPrinter {
         int side = direction.getOpposite().ordinal();
         final Vec3 hitVec = Vec3.createVectorHelper(x + offsetX, y + offsetY, z + offsetZ);
 
-        success = placeBlock(world, player, itemStack, x, y, z, side, hitVec);
+        boolean success = placeBlock(world, player, itemStack, x, y, z, side, hitVec);
         for (int i = 0; success && i < extraClicks; i++) {
             success = placeBlock(world, player, itemStack, x, y, z, side, hitVec);
         }
@@ -379,7 +377,7 @@ public class SchematicPrinter {
         if (this.minecraft.playerController.isInCreativeMode()
                 && (slot < Constants.Inventory.InventoryOffset.HOTBAR
                         || slot >= Constants.Inventory.InventoryOffset.HOTBAR + Constants.Inventory.Size.HOTBAR)
-                && ConfigurationHandler.swapSlotsQueue.size() > 0) {
+                && !ConfigurationHandler.swapSlotsQueue.isEmpty()) {
             inventory.currentItem = getNextSlot();
             inventory.setInventorySlotContents(inventory.currentItem, itemStack.copy());
             this.minecraft.playerController.sendSlotPacket(
@@ -411,7 +409,7 @@ public class SchematicPrinter {
     }
 
     private boolean swapSlots(InventoryPlayer inventory, int from) {
-        if (ConfigurationHandler.swapSlotsQueue.size() > 0) {
+        if (!ConfigurationHandler.swapSlotsQueue.isEmpty()) {
             int slot = getNextSlot();
 
             swapSlots(from, slot);

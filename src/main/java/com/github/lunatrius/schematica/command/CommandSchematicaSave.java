@@ -31,11 +31,9 @@ public class CommandSchematicaSave extends CommandSchematicaBase {
             throw new WrongUsageException(getCommandUsage(sender));
         }
 
-        if (!(sender instanceof EntityPlayer)) {
+        if (!(sender instanceof EntityPlayer player)) {
             throw new CommandException(Names.Command.Save.Message.PLAYERS_ONLY);
         }
-
-        final EntityPlayer player = (EntityPlayer) sender;
 
         if (Schematica.proxy.isPlayerQuotaExceeded(player)) {
             throw new CommandException(Names.Command.Save.Message.QUOTA_EXCEEDED);

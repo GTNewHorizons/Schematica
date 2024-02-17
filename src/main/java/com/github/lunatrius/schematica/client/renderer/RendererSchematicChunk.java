@@ -41,7 +41,7 @@ public class RendererSchematicChunk {
     private final Minecraft minecraft = Minecraft.getMinecraft();
     private final Profiler profiler = this.minecraft.mcProfiler;
     private final SchematicWorld schematic;
-    private final List<TileEntity> tileEntities = new ArrayList<TileEntity>();
+    private final List<TileEntity> tileEntities = new ArrayList<>();
     private final Vector3d distance = new Vector3d();
 
     private final AxisAlignedBB boundingBox = AxisAlignedBB.getBoundingBox(0, 0, 0, 0, 0, 0);

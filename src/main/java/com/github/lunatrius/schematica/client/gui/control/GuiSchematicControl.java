@@ -170,7 +170,7 @@ public class GuiSchematicControl extends GuiScreenBase {
 
         this.btnHide.enabled = this.schematic != null;
         this.btnMove.enabled = this.schematic != null;
-        // this.btnFlip.enabled = this.settings.schematic != null;
+
         this.btnFlip.enabled = false;
         this.btnRotate.enabled = this.schematic != null;
         this.btnMaterials.enabled = this.schematic != null;
@@ -252,9 +252,6 @@ public class GuiSchematicControl extends GuiScreenBase {
                 this.btnPrint.displayString = isPrinting ? this.strOn : this.strOff;
             } else if (guiButton.id == this.btnSaveCoordinates.id) {
                 String worldServerName = worldServerName(this.mc);
-                // Reference.logger.info("Saved coordinates, stored data:\nCoordinates: {} {} {}\nSchematic Name:
-                // {}\nWorld Name/server Name: {}", this.numericX.getValue(), this.numericY.getValue(),
-                // this.numericZ.getValue(), this.schematic.name, worldServerName);
                 EntityPlayerSP player = mc.thePlayer;
                 if (player != null) {
                     if (ClientProxy.addCoordinatesAndRotation(
@@ -275,8 +272,6 @@ public class GuiSchematicControl extends GuiScreenBase {
 
     @Override
     public void drawScreen(int par1, int par2, float par3) {
-        // drawDefaultBackground();
-
         drawCenteredString(this.fontRendererObj, this.strMoveSchematic, this.centerX, this.centerY - 45, 0xFFFFFF);
         drawCenteredString(this.fontRendererObj, this.strMaterials, 50, this.height - 85, 0xFFFFFF);
         drawCenteredString(this.fontRendererObj, this.strPrinter, 50, this.height - 45, 0xFFFFFF);

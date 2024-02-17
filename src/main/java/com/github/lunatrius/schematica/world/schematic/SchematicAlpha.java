@@ -33,12 +33,12 @@ public class SchematicAlpha extends SchematicFormat {
     public ISchematic readFromNBT(NBTTagCompound tagCompound) {
         ItemStack icon = SchematicUtil.getIconFromNBT(tagCompound);
 
-        byte localBlocks[] = tagCompound.getByteArray(Names.NBT.BLOCKS);
-        byte localMetadata[] = tagCompound.getByteArray(Names.NBT.DATA);
+        byte[] localBlocks = tagCompound.getByteArray(Names.NBT.BLOCKS);
+        byte[] localMetadata = tagCompound.getByteArray(Names.NBT.DATA);
 
         boolean extra = false;
-        byte extraBlocks[] = null;
-        byte extraBlocksNibble[] = null;
+        byte[] extraBlocks = null;
+        byte[] extraBlocksNibble;
         if (tagCompound.hasKey(Names.NBT.ADD_BLOCKS)) {
             extra = true;
             extraBlocksNibble = tagCompound.getByteArray(Names.NBT.ADD_BLOCKS);
@@ -56,8 +56,8 @@ public class SchematicAlpha extends SchematicFormat {
         short length = tagCompound.getShort(Names.NBT.LENGTH);
         short height = tagCompound.getShort(Names.NBT.HEIGHT);
 
-        Short id = null;
-        Map<Short, Short> oldToNew = new HashMap<Short, Short>();
+        Short id;
+        Map<Short, Short> oldToNew = new HashMap<>();
         if (tagCompound.hasKey(Names.NBT.MAPPING_SCHEMATICA)) {
             NBTTagCompound mapping = tagCompound.getCompoundTag(Names.NBT.MAPPING_SCHEMATICA);
             Set<String> names = mapping.func_150296_c();
@@ -111,13 +111,13 @@ public class SchematicAlpha extends SchematicFormat {
         tagCompound.setShort(Names.NBT.HEIGHT, (short) schematic.getHeight());
 
         int size = schematic.getWidth() * schematic.getLength() * schematic.getHeight();
-        byte localBlocks[] = new byte[size];
-        byte localMetadata[] = new byte[size];
-        byte extraBlocks[] = new byte[size];
-        byte extraBlocksNibble[] = new byte[(int) Math.ceil(size / 2.0)];
+        byte[] localBlocks = new byte[size];
+        byte[] localMetadata = new byte[size];
+        byte[] extraBlocks = new byte[size];
+        byte[] extraBlocksNibble = new byte[(int) Math.ceil(size / 2.0)];
         boolean extra = false;
 
-        Map<String, Short> mappings = new HashMap<String, Short>();
+        Map<String, Short> mappings = new HashMap<>();
         for (int x = 0; x < schematic.getWidth(); x++) {
             for (int y = 0; y < schematic.getHeight(); y++) {
                 for (int z = 0; z < schematic.getLength(); z++) {

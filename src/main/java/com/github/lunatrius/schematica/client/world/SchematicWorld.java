@@ -211,8 +211,7 @@ public class SchematicWorld extends World {
 
     public void refreshChests() {
         for (TileEntity tileEntity : this.schematic.getTileEntities()) {
-            if (tileEntity instanceof TileEntityChest) {
-                TileEntityChest tileEntityChest = (TileEntityChest) tileEntity;
+            if (tileEntity instanceof TileEntityChest tileEntityChest) {
                 tileEntityChest.adjacentChestChecked = false;
                 tileEntityChest.checkForAdjacentChests();
             }
@@ -254,8 +253,7 @@ public class SchematicWorld extends World {
             tileEntity.blockMetadata = schematicRotated
                     .getBlockMetadata(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord);
 
-            if (tileEntity instanceof TileEntitySkull && tileEntity.blockMetadata == 0x1) {
-                TileEntitySkull skullTileEntity = (TileEntitySkull) tileEntity;
+            if (tileEntity instanceof TileEntitySkull skullTileEntity && tileEntity.blockMetadata == 0x1) {
                 skullTileEntity.func_145903_a((skullTileEntity.func_145906_b() + 12) & 15);
             }
 

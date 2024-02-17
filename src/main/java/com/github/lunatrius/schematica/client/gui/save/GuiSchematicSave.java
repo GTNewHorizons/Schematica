@@ -191,8 +191,6 @@ public class GuiSchematicSave extends GuiScreenBase {
 
     @Override
     public void drawScreen(int par1, int par2, float par3) {
-        // drawDefaultBackground();
-
         drawString(this.fontRendererObj, this.strSaveSelection, this.width - 205, this.height - 45, 0xFFFFFF);
 
         drawString(this.fontRendererObj, this.strX, this.centerX - 145, this.centerY - 24, 0xFFFFFF);

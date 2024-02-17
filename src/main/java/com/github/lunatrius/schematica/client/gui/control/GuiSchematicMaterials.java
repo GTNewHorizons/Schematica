@@ -119,7 +119,7 @@ public class GuiSchematicMaterials extends GuiScreenBase {
     }
 
     private void dumpMaterialList(final List<BlockList.WrappedItemStack> blockList) {
-        if (blockList.size() <= 0) {
+        if (blockList.isEmpty()) {
             return;
         }
 
@@ -144,14 +144,9 @@ public class GuiSchematicMaterials extends GuiScreenBase {
         }
 
         final File dumps = Schematica.proxy.getDirectory("dumps");
-        try {
-            final FileOutputStream outputStream = new FileOutputStream(
-                    new File(dumps, Reference.MODID + "-materials.txt"));
-            try {
-                IOUtils.write(stringBuilder.toString(), outputStream);
-            } finally {
-                outputStream.close();
-            }
+        try (FileOutputStream outputStream = new FileOutputStream(
+                new File(dumps, Reference.MODID + "-materials.txt"))) {
+            IOUtils.write(stringBuilder.toString(), outputStream);
         } catch (final Exception e) {
             Reference.logger.error("Could not dump the material list!", e);
         }

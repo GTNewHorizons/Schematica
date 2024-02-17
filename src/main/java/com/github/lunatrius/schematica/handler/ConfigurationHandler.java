@@ -70,7 +70,7 @@ public class ConfigurationHandler {
     public static boolean destroyInstantly = DESTROY_INSTANTLY_DEFAULT;
     public static boolean placeAdjacent = PLACE_ADJACENT_DEFAULT;
     public static boolean[] swapSlots = SWAP_SLOTS_DEFAULT;
-    public static final Queue<Integer> swapSlotsQueue = new ArrayDeque<Integer>();
+    public static final Queue<Integer> swapSlotsQueue = new ArrayDeque<>();
     public static File schematicDirectory = SCHEMATIC_DIRECTORY_DEFAULT;
     public static String[] extraAirBlocks = EXTRA_AIR_BLOCKS_DEFAULT;
     public static String sortType = SORT_TYPE_DEFAULT;
@@ -102,7 +102,7 @@ public class ConfigurationHandler {
     public static Property propLoadEnabled = null;
     public static Property propPlayerQuotaKilobytes = null;
 
-    private static final Set<Block> extraAirBlockList = new HashSet<Block>();
+    private static final Set<Block> extraAirBlockList = new HashSet<>();
 
     public static void init(File configFile) {
         if (configuration == null) {

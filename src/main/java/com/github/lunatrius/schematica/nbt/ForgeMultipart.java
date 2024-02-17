@@ -122,13 +122,13 @@ public class ForgeMultipart {
     private static TileEntity createFromNBTClient(final NBTTagCompound tileEntityCompound)
             throws ReflectiveOperationException {
         final NBTTagList partList = tileEntityCompound.getTagList("parts", Constants.NBT.TAG_COMPOUND);
-        final List<Object> parts = new ArrayList<Object>();
+        final List<Object> parts = new ArrayList<>();
         final boolean client = true;
 
         for (int i = 0; i < partList.tagCount(); i++) {
             final NBTTagCompound partTag = partList.getCompoundTagAt(i);
             final String partID = partTag.getString("id");
-            final Integer materialID = materialID(partTag.getString("material"));
+            final int materialID = materialID(partTag.getString("material"));
 
             final Object part = createPart(partID, client, materialID);
             if (part != null) {
@@ -142,7 +142,7 @@ public class ForgeMultipart {
             return null;
         }
 
-        if (parts.size() == 0) {
+        if (parts.isEmpty()) {
             return null;
         }
 

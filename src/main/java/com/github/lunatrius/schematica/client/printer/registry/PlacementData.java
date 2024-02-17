@@ -10,7 +10,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 public class PlacementData {
 
-    public static enum PlacementType {
+    public enum PlacementType {
         BLOCK,
         PLAYER,
         PISTON
@@ -23,7 +23,7 @@ public class PlacementData {
     public float offsetLowY = 0.0f;
     public float offsetHighY = 1.0f;
     public int maskMeta = 0xF;
-    public final Map<ForgeDirection, Integer> mapping = new HashMap<ForgeDirection, Integer>();
+    public final Map<ForgeDirection, Integer> mapping = new HashMap<>();
     private IExtraClick extraClick;
 
     public PlacementData(PlacementType type, int... metadata) {
@@ -53,7 +53,7 @@ public class PlacementData {
     }
 
     public ForgeDirection[] getValidDirections(ForgeDirection[] solidSides, int metadata) {
-        List<ForgeDirection> list = new ArrayList<ForgeDirection>();
+        List<ForgeDirection> list = new ArrayList<>();
 
         for (ForgeDirection direction : solidSides) {
             if (this.maskOffset != 0) {
@@ -70,7 +70,7 @@ public class PlacementData {
 
             if (this.type == PlacementType.BLOCK) {
                 Integer meta = this.mapping.get(direction);
-                if ((meta != null ? meta : -1) != (this.maskMeta & metadata) && this.mapping.size() != 0) {
+                if ((meta != null ? meta : -1) != (this.maskMeta & metadata) && !this.mapping.isEmpty()) {
                     continue;
                 }
             }

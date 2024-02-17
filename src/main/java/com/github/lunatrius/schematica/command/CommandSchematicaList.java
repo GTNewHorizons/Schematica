@@ -38,7 +38,7 @@ public class CommandSchematicaList extends CommandSchematicaBase {
 
     @Override
     public void processCommand(ICommandSender sender, String[] arguments) {
-        if (!(sender instanceof EntityPlayer)) {
+        if (!(sender instanceof EntityPlayer player)) {
             throw new CommandException(Names.Command.Save.Message.PLAYERS_ONLY);
         }
 
@@ -54,13 +54,12 @@ public class CommandSchematicaList extends CommandSchematicaBase {
             throw new WrongUsageException(getCommandUsage(sender));
         }
 
-        final EntityPlayer player = (EntityPlayer) sender;
         int pageSize = 9; // maximum number of lines available without opening chat.
         int pageStart = page * pageSize;
         int pageEnd = pageStart + pageSize;
         int currentFile = 0;
 
-        LinkedList<IChatComponent> componentsToSend = new LinkedList<IChatComponent>();
+        LinkedList<IChatComponent> componentsToSend = new LinkedList<>();
 
         File schematicDirectory = Schematica.proxy.getPlayerSchematicDirectory(player, true);
         if (schematicDirectory == null) {

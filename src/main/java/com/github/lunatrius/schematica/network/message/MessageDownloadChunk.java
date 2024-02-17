@@ -29,8 +29,8 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
     public int baseY;
     public int baseZ;
 
-    public short blocks[][][];
-    public byte metadata[][][];
+    public short[][][] blocks;
+    public byte[][][] metadata;
     public List<TileEntity> tileEntities;
     public List<Entity> entities;
 
@@ -43,8 +43,8 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
 
         this.blocks = new short[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
         this.metadata = new byte[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
-        this.tileEntities = new ArrayList<TileEntity>();
-        this.entities = new ArrayList<Entity>();
+        this.tileEntities = new ArrayList<>();
+        this.entities = new ArrayList<>();
 
         for (int x = 0; x < Constants.SchematicChunk.WIDTH; x++) {
             for (int y = 0; y < Constants.SchematicChunk.HEIGHT; y++) {
@@ -88,8 +88,8 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
 
         this.blocks = new short[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
         this.metadata = new byte[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
-        this.tileEntities = new ArrayList<TileEntity>();
-        this.entities = new ArrayList<Entity>();
+        this.tileEntities = new ArrayList<>();
+        this.entities = new ArrayList<>();
 
         for (int x = 0; x < Constants.SchematicChunk.WIDTH; x++) {
             for (int y = 0; y < Constants.SchematicChunk.HEIGHT; y++) {

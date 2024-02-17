@@ -38,7 +38,7 @@ public class CommandSchematicaDownload extends CommandSchematicaBase {
     }
 
     @Override
-    public List addTabCompletionOptions(ICommandSender sender, String[] args) {
+    public List<String> addTabCompletionOptions(ICommandSender sender, String[] args) {
         if (!(sender instanceof EntityPlayer)) {
             throw new CommandException(Names.Command.Download.Message.PLAYERS_ONLY);
         }
@@ -47,7 +47,7 @@ public class CommandSchematicaDownload extends CommandSchematicaBase {
         final File[] files = directory.listFiles(FILE_FILTER_SCHEMATIC);
 
         if (files != null) {
-            final List<String> filenames = new ArrayList<String>();
+            final List<String> filenames = new ArrayList<>();
 
             for (File file : files) {
                 filenames.add(FilenameUtils.removeExtension(file.getName()));
@@ -65,12 +65,11 @@ public class CommandSchematicaDownload extends CommandSchematicaBase {
             throw new WrongUsageException(getCommandUsage(sender));
         }
 
-        if (!(sender instanceof EntityPlayerMP)) {
+        if (!(sender instanceof EntityPlayerMP player)) {
             throw new CommandException(Names.Command.Download.Message.PLAYERS_ONLY);
         }
 
         final String filename = args[0] + ".schematic";
-        final EntityPlayerMP player = (EntityPlayerMP) sender;
         final File directory = Schematica.proxy.getPlayerSchematicDirectory(player, true);
         if (!FileUtils.contains(directory, filename)) {
             Reference.logger.error("{} has tried to download the file {}", player.getDisplayName(), filename);

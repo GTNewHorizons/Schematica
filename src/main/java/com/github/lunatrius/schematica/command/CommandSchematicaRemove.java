@@ -41,11 +41,9 @@ public class CommandSchematicaRemove extends CommandSchematicaBase {
             throw new WrongUsageException(getCommandUsage(sender));
         }
 
-        if (!(sender instanceof EntityPlayer)) {
+        if (!(sender instanceof EntityPlayer player)) {
             throw new CommandException(Names.Command.Remove.Message.PLAYERS_ONLY);
         }
-
-        final EntityPlayer player = (EntityPlayer) sender;
 
         boolean delete = false;
         String name = Strings.join(arguments, " ");

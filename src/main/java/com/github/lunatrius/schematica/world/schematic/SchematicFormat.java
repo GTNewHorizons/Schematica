@@ -17,7 +17,7 @@ import com.github.lunatrius.schematica.reference.Reference;
 
 public abstract class SchematicFormat {
 
-    public static final Map<String, SchematicFormat> FORMATS = new HashMap<String, SchematicFormat>();
+    public static final Map<String, SchematicFormat> FORMATS = new HashMap<>();
     public static String FORMAT_DEFAULT;
 
     public abstract ISchematic readFromNBT(NBTTagCompound tagCompound);
@@ -55,12 +55,9 @@ public abstract class SchematicFormat {
 
             FORMATS.get(FORMAT_DEFAULT).writeToNBT(tagCompound, schematic);
 
-            DataOutputStream dataOutputStream = new DataOutputStream(new GZIPOutputStream(new FileOutputStream(file)));
-
-            try {
+            try (DataOutputStream dataOutputStream = new DataOutputStream(
+                    new GZIPOutputStream(new FileOutputStream(file)))) {
                 NBTTagCompound.func_150298_a(Names.NBT.ROOT, tagCompound, dataOutputStream);
-            } finally {
-                dataOutputStream.close();
             }
 
             return true;

@@ -1,7 +1,6 @@
 package com.github.lunatrius.schematica.client.renderer;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
@@ -29,7 +28,7 @@ public class RendererSchematicGlobal {
 
     private final Frustrum frustrum = new Frustrum();
     public RenderBlocks renderBlocks = null;
-    public final List<RendererSchematicChunk> sortedRendererSchematicChunk = new ArrayList<RendererSchematicChunk>();
+    public final List<RendererSchematicChunk> sortedRendererSchematicChunk = new ArrayList<>();
     private final RendererSchematicChunkComparator rendererSchematicChunkComparator = new RendererSchematicChunkComparator();
 
     private RendererSchematicGlobal() {}
@@ -207,7 +206,7 @@ public class RendererSchematicGlobal {
 
     private void sortAndUpdate(SchematicWorld schematic) {
         this.rendererSchematicChunkComparator.setPosition(schematic.position);
-        Collections.sort(this.sortedRendererSchematicChunk, this.rendererSchematicChunkComparator);
+        this.sortedRendererSchematicChunk.sort(this.rendererSchematicChunkComparator);
 
         for (RendererSchematicChunk rendererSchematicChunk : this.sortedRendererSchematicChunk) {
             if (rendererSchematicChunk.getDirty()) {
@@ -236,7 +235,7 @@ public class RendererSchematicGlobal {
 
     public void destroyRendererSchematicChunks() {
         this.renderBlocks = null;
-        while (this.sortedRendererSchematicChunk.size() > 0) {
+        while (!this.sortedRendererSchematicChunk.isEmpty()) {
             this.sortedRendererSchematicChunk.remove(0).delete();
         }
     }

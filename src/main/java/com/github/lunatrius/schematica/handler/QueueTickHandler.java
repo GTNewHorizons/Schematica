@@ -19,7 +19,7 @@ public class QueueTickHandler {
 
     public static final QueueTickHandler INSTANCE = new QueueTickHandler();
 
-    private final Queue<SchematicContainer> queue = new ArrayDeque<SchematicContainer>();
+    private final Queue<SchematicContainer> queue = new ArrayDeque<>();
 
     private QueueTickHandler() {}
 
@@ -50,7 +50,7 @@ public class QueueTickHandler {
     }
 
     private void processQueue() {
-        if (this.queue.size() == 0) {
+        if (this.queue.isEmpty()) {
             return;
         }
 

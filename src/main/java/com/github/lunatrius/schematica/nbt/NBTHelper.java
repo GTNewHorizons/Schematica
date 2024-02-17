@@ -17,7 +17,7 @@ import com.github.lunatrius.schematica.world.WorldDummy;
 public class NBTHelper {
 
     public static List<TileEntity> readTileEntitiesFromCompound(final NBTTagCompound compound) {
-        return readTileEntitiesFromCompound(compound, new ArrayList<TileEntity>());
+        return readTileEntitiesFromCompound(compound, new ArrayList<>());
     }
 
     public static List<TileEntity> readTileEntitiesFromCompound(final NBTTagCompound compound,
@@ -50,11 +50,11 @@ public class NBTHelper {
     }
 
     public static List<Entity> readEntitiesFromCompound(final NBTTagCompound compound) {
-        return readEntitiesFromCompound(compound, null, new ArrayList<Entity>());
+        return readEntitiesFromCompound(compound, null, new ArrayList<>());
     }
 
     public static List<Entity> readEntitiesFromCompound(final NBTTagCompound compound, final World world) {
-        return readEntitiesFromCompound(compound, world, new ArrayList<Entity>());
+        return readEntitiesFromCompound(compound, world, new ArrayList<>());
     }
 
     public static List<Entity> readEntitiesFromCompound(final NBTTagCompound compound, final List<Entity> entities) {

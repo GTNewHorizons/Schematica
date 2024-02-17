@@ -1,7 +1,6 @@
 package com.github.lunatrius.schematica.world.storage;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -24,8 +23,8 @@ public class Schematic implements ISchematic {
     private ItemStack icon;
     private final short[][][] blocks;
     private final byte[][][] metadata;
-    private final List<TileEntity> tileEntities = new ArrayList<TileEntity>();
-    private final List<Entity> entities = new ArrayList<Entity>();
+    private final List<TileEntity> tileEntities = new ArrayList<>();
+    private final List<Entity> entities = new ArrayList<>();
     private final int width;
     private final int height;
     private final int length;
@@ -101,14 +100,9 @@ public class Schematic implements ISchematic {
 
     @Override
     public void removeTileEntity(final int x, final int y, final int z) {
-        final Iterator<TileEntity> iterator = this.tileEntities.iterator();
 
-        while (iterator.hasNext()) {
-            final TileEntity tileEntity = iterator.next();
-            if (tileEntity.xCoord == x && tileEntity.yCoord == y && tileEntity.zCoord == z) {
-                iterator.remove();
-            }
-        }
+        this.tileEntities
+                .removeIf(tileEntity -> tileEntity.xCoord == x && tileEntity.yCoord == y && tileEntity.zCoord == z);
     }
 
     @Override
@@ -156,13 +150,7 @@ public class Schematic implements ISchematic {
             return;
         }
 
-        final Iterator<Entity> iterator = this.entities.iterator();
-        while (iterator.hasNext()) {
-            final Entity e = iterator.next();
-            if (entity.getUniqueID().equals(e.getUniqueID())) {
-                iterator.remove();
-            }
-        }
+        this.entities.removeIf(e -> entity.getUniqueID().equals(e.getUniqueID()));
     }
 
     @Override

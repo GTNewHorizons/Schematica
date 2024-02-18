@@ -1,6 +1,7 @@
 package com.github.lunatrius.schematica.world.schematic;
 
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.World;
 
 import org.apache.commons.lang3.NotImplementedException;
 
@@ -15,7 +16,7 @@ public class SchematicClassic extends SchematicFormat {
     }
 
     @Override
-    public boolean writeToNBT(NBTTagCompound tagCompound, ISchematic schematic) {
+    public boolean writeToNBT(NBTTagCompound tagCompound, ISchematic schematic, World backupWorld) {
         throw new NotImplementedException("Not implemented");
     }
 }

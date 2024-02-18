@@ -12,6 +12,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.Constants;
 
@@ -100,7 +101,7 @@ public class SchematicAlpha extends SchematicFormat {
     }
 
     @Override
-    public boolean writeToNBT(NBTTagCompound tagCompound, ISchematic schematic) {
+    public boolean writeToNBT(NBTTagCompound tagCompound, ISchematic schematic, World backupWorld) {
         NBTTagCompound tagCompoundIcon = new NBTTagCompound();
         ItemStack icon = schematic.getIcon();
         icon.writeToNBT(tagCompoundIcon);
@@ -142,6 +143,9 @@ public class SchematicAlpha extends SchematicFormat {
         NBTTagList tileEntitiesList = new NBTTagList();
         for (TileEntity tileEntity : schematic.getTileEntities()) {
             try {
+                if (!tileEntity.hasWorldObj()) {
+                    tileEntity.setWorldObj(backupWorld);
+                }
                 NBTTagCompound tileEntityTagCompound = NBTHelper.writeTileEntityToCompound(tileEntity);
                 tileEntitiesList.appendTag(tileEntityTagCompound);
             } catch (Exception e) {

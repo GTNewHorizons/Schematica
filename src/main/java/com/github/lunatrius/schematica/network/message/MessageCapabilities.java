@@ -2,6 +2,7 @@ package com.github.lunatrius.schematica.network.message;
 
 import com.github.lunatrius.schematica.Schematica;
 import com.github.lunatrius.schematica.client.printer.SchematicPrinter;
+import com.github.lunatrius.schematica.proxy.ClientProxy;
 import com.github.lunatrius.schematica.reference.Reference;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -41,6 +42,11 @@ public class MessageCapabilities implements IMessage, IMessageHandler<MessageCap
 
     @Override
     public IMessage onMessage(MessageCapabilities message, MessageContext ctx) {
+        if (ClientProxy.isPendingReset) {
+            Schematica.proxy.resetSettings();
+            ClientProxy.isPendingReset = false;
+        }
+
         SchematicPrinter.INSTANCE.setEnabled(message.isPrinterEnabled);
         Schematica.proxy.isSaveEnabled = message.isSaveEnabled;
         Schematica.proxy.isLoadEnabled = message.isLoadEnabled;

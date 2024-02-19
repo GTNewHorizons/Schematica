@@ -39,11 +39,8 @@ public class MessageDownloadEnd implements IMessage, IMessageHandler<MessageDown
     @Override
     public IMessage onMessage(MessageDownloadEnd message, MessageContext ctx) {
         File directory = Schematica.proxy.getPlayerSchematicDirectory(null, true);
-        boolean success = SchematicFormat.writeToFile(
-                directory,
-                message.name,
-                DownloadHandler.INSTANCE.schematic,
-                Minecraft.getMinecraft().theWorld);
+        boolean success = SchematicFormat
+                .writeToFile(directory, message.name, DownloadHandler.INSTANCE.schematic, null);
 
         if (success) {
             Minecraft.getMinecraft().thePlayer.addChatMessage(

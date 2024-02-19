@@ -73,7 +73,6 @@ public abstract class SchematicFormat {
     }
 
     static {
-        FORMATS.put(Names.NBT.FORMAT_CLASSIC, new SchematicClassic());
         FORMATS.put(Names.NBT.FORMAT_ALPHA, new SchematicAlpha());
 
         FORMAT_DEFAULT = Names.NBT.FORMAT_ALPHA;

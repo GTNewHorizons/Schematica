@@ -32,6 +32,31 @@ public class Schematica {
 
     @NetworkCheckHandler
     public boolean checkModList(Map<String, String> versions, Side side) {
+        if (side == Side.CLIENT) {
+            if (versions.containsKey("Schematica")) {
+                String version = versions.get("Schematica");
+                String[] splitVersion = version.split("\\.");
+                boolean isAllowed = false;
+
+                if (splitVersion.length < 3) return false;
+
+                try {
+                    int major = Integer.parseInt(splitVersion[0]);
+                    int rev = Integer.parseInt(splitVersion[1]);
+
+                    if (major > 1) {
+                        isAllowed = true;
+                    } else if (major == 1 && rev >= 11) {
+                        isAllowed = true;
+                    }
+                } catch (NumberFormatException e) {
+                    Reference.logger.warn("Failed to parse client version of " + version);
+                }
+
+                return isAllowed;
+            }
+        }
+
         return true;
     }
 

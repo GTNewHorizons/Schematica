@@ -1,9 +1,13 @@
 package com.github.lunatrius.schematica.proxy;
 
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
+import java.lang.reflect.Type;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
@@ -65,6 +69,8 @@ public class ClientProxy extends CommonProxy {
     public static MovingObjectPosition movingObjectPosition = null;
     private final SchematicWorld schematicWorld = null;
     public static ILOTRPresent lotrProxy = null;
+    private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private static final Type schematicDataType = new TypeToken<Map<String, Map<String, SchematicData>>>() {}.getType();
 
     public static void setPlayerData(EntityPlayer player, float partialTicks) {
         playerPosition.x = player.lastTickPosX + (player.posX - player.lastTickPosX) * partialTicks;
@@ -169,19 +175,37 @@ public class ClientProxy extends CommonProxy {
         }
     }
 
-    public static Map<String, Map<String, Map<String, Integer>>> openCoordinatesFile()
+    private static class SchematicData {
+
+        public int X;
+        public int Y;
+        public int Z;
+        // default value is zero, ensuring backwards compatability for updates that don't store the rotation
+        public int Rotation;
+
+        SchematicData() {}
+    }
+
+    private static Map<String, Map<String, SchematicData>> openCoordinatesFile()
             throws ClassCastException, IOException {
-        Gson gson = new Gson();
         File coordinatesFile = new File(ConfigurationHandler.schematicDirectory, Constants.Files.Coordinates + ".json");
-        Map<String, Map<String, Map<String, Integer>>> coordinates = new HashMap<>();
+        Map<String, Map<String, SchematicData>> coordinates = new HashMap<>();
         if (coordinatesFile.exists() && coordinatesFile.canRead() && coordinatesFile.canWrite()) {
             try (Reader reader = Files.newBufferedReader(
-                    new File(ConfigurationHandler.schematicDirectory, Constants.Files.Coordinates + ".json")
-                            .toPath())) {
-                coordinates = gson
-                        .fromJson(reader, new TypeToken<Map<String, Map<String, Map<String, Integer>>>>() {}.getType());
-            } catch (Exception e) {
-                throw new ClassCastException("Failed to convert json file to Map<String,Map<String,Integer>>");
+                    new File(ConfigurationHandler.schematicDirectory, Constants.Files.Coordinates + ".json").toPath(),
+                    StandardCharsets.UTF_8)) {
+                coordinates = gson.fromJson(reader, schematicDataType);
+            } catch (Exception e1) {
+                // as I forgot to specify utf-8 before older Coordinates.json files will be in the default charset
+                try (Reader reader = Files.newBufferedReader(
+                        new File(ConfigurationHandler.schematicDirectory, Constants.Files.Coordinates + ".json")
+                                .toPath(),
+                        Charset.defaultCharset())) {
+                    coordinates = gson.fromJson(reader, schematicDataType);
+                } catch (Exception e2) {
+                    // failed to read file in utf-8, trying with default charset
+                    throw new ClassCastException("Failed to convert json file to Map<String,SchematicData>");
+                }
             }
 
         } else if (!coordinatesFile.exists()) {
@@ -194,12 +218,12 @@ public class ClientProxy extends CommonProxy {
         return coordinates;
     }
 
-    public static boolean saveCoordinatesFile(Map<String, Map<String, Map<String, Integer>>> map) {
-        Gson gsonBuilder = new GsonBuilder().setPrettyPrinting().create();
+    private static boolean saveCoordinatesFile(Map<String, Map<String, SchematicData>> map) {
         File coordinatesFile = new File(ConfigurationHandler.schematicDirectory, Constants.Files.Coordinates + ".json");
-        try (FileWriter writer = new FileWriter(coordinatesFile.getAbsoluteFile())) {
-            gsonBuilder
-                    .toJson(map, new TypeToken<Map<String, Map<String, Map<String, Integer>>>>() {}.getType(), writer);
+        try (OutputStreamWriter writer = new OutputStreamWriter(
+                new FileOutputStream(coordinatesFile.getAbsoluteFile()),
+                StandardCharsets.UTF_8)) {
+            gson.toJson(map, schematicDataType, writer);
             writer.flush();
             Reference.logger.info("Successfully written to coordinates file");
             return true;
@@ -212,36 +236,26 @@ public class ClientProxy extends CommonProxy {
     public static boolean addCoordinatesAndRotation(String worldServerName, String schematicName, Integer X, Integer Y,
             Integer Z, Integer rotation) {
         try {
-            Map<String, Map<String, Map<String, Integer>>> coordinates = openCoordinatesFile();
+            Map<String, Map<String, SchematicData>> coordinates = openCoordinatesFile();
+            SchematicData schematicData = new SchematicData();
+            schematicData.X = X;
+            schematicData.Y = Y;
+            schematicData.Z = Z;
+            schematicData.Rotation = rotation;
             if (coordinates.containsKey(worldServerName)) {
-                coordinates.get(worldServerName).put(schematicName, new HashMap<>() {
-
-                    {
-                        put("X", X);
-                        put("Y", Y);
-                        put("Z", Z);
-                        put("Rotation", rotation);
-                    }
-                });
+                coordinates.get(worldServerName).put(schematicName, schematicData);
             } else {
                 coordinates.put(worldServerName, new HashMap<>() {
 
                     {
-                        put(schematicName, new HashMap<>() {
-
-                            {
-                                put("X", X);
-                                put("Y", Y);
-                                put("Z", Z);
-                                put("Rotation", rotation);
-                            }
-                        });
+                        put(schematicName, schematicData);
                     }
                 });
             }
             saveCoordinatesFile(coordinates);
             return true;
         } catch (IOException e) {
+            e.printStackTrace();
             return false;
         }
     }
@@ -256,21 +270,15 @@ public class ClientProxy extends CommonProxy {
     public static ImmutableTriple<Boolean, Integer, ImmutableTriple<Integer, Integer, Integer>> getCoordinates(
             String worldServerName, String schematicName) {
         try {
-            Map<String, Map<String, Map<String, Integer>>> coordinates = openCoordinatesFile();
+            Map<String, Map<String, SchematicData>> coordinates = openCoordinatesFile();
             if (coordinates.containsKey(worldServerName)) {
-                Map<String, Map<String, Integer>> schematicMap = coordinates.get(worldServerName);
+                Map<String, SchematicData> schematicMap = coordinates.get(worldServerName);
                 if (schematicMap.containsKey(schematicName)) {
-                    Map<String, Integer> coordinateMap = schematicMap.get(schematicName);
-                    if (coordinateMap.containsKey("X") && coordinateMap.containsKey("Y")
-                            && coordinateMap.containsKey("Z")) {
-                        return new ImmutableTriple<>(
-                                true,
-                                coordinateMap.getOrDefault("Rotation", 0),
-                                new ImmutableTriple<>(
-                                        coordinateMap.get("X"),
-                                        coordinateMap.get("Y"),
-                                        coordinateMap.get("Z")));
-                    }
+                    SchematicData schematicData = schematicMap.get(schematicName);
+                    return new ImmutableTriple<>(
+                            true,
+                            schematicData.Rotation,
+                            new ImmutableTriple<>(schematicData.X, schematicData.Y, schematicData.Z));
                 }
             }
             return new ImmutableTriple<>(false, null, null);

@@ -18,6 +18,8 @@ public final class Names {
 
         public static final String SHOW_DEBUG_INFO = "showDebugInfo";
         public static final String SHOW_DEBUG_INFO_DESC = "Display extra information on the debug screen (F3).";
+        public static final String EXTENDED_ID_FORMAT = "useSchematicplusFormat";
+        public static final String EXTENDED_ID_FORMAT_DESC = "Save and load schematics with a different format that supports a much higher number of block ids. Only schematics in schemplus format will be loaded.";
         public static final String ALPHA_ENABLED = "alphaEnabled";
         public static final String ALPHA_ENABLED_DESC = "Enable transparent textures.";
         public static final String ALPHA = "alpha";

@@ -16,6 +16,7 @@ import org.apache.commons.io.FilenameUtils;
 import com.github.lunatrius.schematica.FileFilterSchematic;
 import com.github.lunatrius.schematica.Schematica;
 import com.github.lunatrius.schematica.api.ISchematic;
+import com.github.lunatrius.schematica.handler.ConfigurationHandler;
 import com.github.lunatrius.schematica.handler.DownloadHandler;
 import com.github.lunatrius.schematica.network.transfer.SchematicTransfer;
 import com.github.lunatrius.schematica.reference.Names;
@@ -69,7 +70,13 @@ public class CommandSchematicaDownload extends CommandSchematicaBase {
             throw new CommandException(Names.Command.Download.Message.PLAYERS_ONLY);
         }
 
-        final String filename = args[0] + ".schematic";
+        final String filename;
+        if (ConfigurationHandler.useSchematicplusFormat) {
+            filename = args[0] + ".schemplus";
+        } else {
+            filename = args[0] + ".schematic";
+        }
+
         final File directory = Schematica.proxy.getPlayerSchematicDirectory(player, true);
         if (!FileUtils.contains(directory, filename)) {
             Reference.logger.error("{} has tried to download the file {}", player.getDisplayName(), filename);

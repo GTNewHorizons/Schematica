@@ -29,6 +29,7 @@ public class ConfigurationHandler {
     public static Configuration configuration;
 
     public static final boolean SHOW_DEBUG_INFO_DEFAULT = true;
+    public static final boolean EXTENDED_ID_FORMAT_DEFAULT = false;
     public static final boolean ENABLE_ALPHA_DEFAULT = false;
     public static final double ALPHA_DEFAULT = 1.0;
     public static final boolean HIGHLIGHT_DEFAULT = true;
@@ -57,6 +58,7 @@ public class ConfigurationHandler {
     public static final boolean SERVERSIDE_SCHEMATICS_ENABLED_DEFAULT = true;
 
     public static boolean showDebugInfo = SHOW_DEBUG_INFO_DEFAULT;
+    public static boolean useSchematicplusFormat = EXTENDED_ID_FORMAT_DEFAULT;
     public static boolean enableAlpha = ENABLE_ALPHA_DEFAULT;
     public static float alpha = (float) ALPHA_DEFAULT;
     public static boolean highlight = HIGHLIGHT_DEFAULT;
@@ -82,6 +84,7 @@ public class ConfigurationHandler {
     public static boolean serversideSchematicsEnabled = SERVERSIDE_SCHEMATICS_ENABLED_DEFAULT;
 
     public static Property propShowDebugInfo = null;
+    public static Property propUseSchematicplusFormat = null;
     public static Property propEnableAlpha = null;
     public static Property propAlpha = null;
     public static Property propHighlight = null;
@@ -283,6 +286,14 @@ public class ConfigurationHandler {
                 extraAirBlockList.add(block);
             }
         }
+
+        propUseSchematicplusFormat = configuration.get(
+            Names.Config.Category.GENERAL,
+            Names.Config.EXTENDED_ID_FORMAT,
+            EXTENDED_ID_FORMAT_DEFAULT,
+            Names.Config.EXTENDED_ID_FORMAT_DESC);
+        propUseSchematicplusFormat.setLanguageKey(Names.Config.LANG_PREFIX + "." + Names.Config.EXTENDED_ID_FORMAT);
+        useSchematicplusFormat = propUseSchematicplusFormat.getBoolean(EXTENDED_ID_FORMAT_DEFAULT);
 
         propSortType = configuration
             .get(Names.Config.Category.GENERAL, Names.Config.SORT_TYPE, SORT_TYPE_DEFAULT, Names.Config.SORT_TYPE_DESC);

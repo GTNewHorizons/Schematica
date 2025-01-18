@@ -21,6 +21,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Property;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 
 import com.github.lunatrius.core.util.vector.Vector3d;
@@ -181,8 +182,13 @@ public class ClientProxy extends CommonProxy {
         public int X;
         public int Y;
         public int Z;
-        // default value is zero, ensuring backwards compatability for updates that don't store the rotation
+        // default value is zero, ensuring backwards compatibility for updates that don't store the rotation
+        public int RotationX;
         public int Rotation;
+        public int RotationZ;
+        public int FlipX;
+        public int FlipY;
+        public int FlipZ;
 
         SchematicData() {}
     }
@@ -234,14 +240,21 @@ public class ClientProxy extends CommonProxy {
     }
 
     public static boolean addCoordinatesAndRotation(String worldServerName, String schematicName, Integer X, Integer Y,
-        Integer Z, Integer rotation) {
+        Integer Z, Integer rotationX, Integer rotationY, Integer rotationZ, Integer flipX, Integer flipY,
+        Integer flipZ) {
         try {
             Map<String, Map<String, SchematicData>> coordinates = openCoordinatesFile();
             SchematicData schematicData = new SchematicData();
             schematicData.X = X;
             schematicData.Y = Y;
             schematicData.Z = Z;
-            schematicData.Rotation = rotation;
+            schematicData.RotationX = rotationX; // This value is left as "Rotation" to provide backwards compat
+            schematicData.Rotation = rotationY;
+            schematicData.RotationZ = rotationZ;
+            schematicData.FlipX = flipX;
+            schematicData.FlipY = flipY;
+            schematicData.FlipZ = flipZ;
+
             if (coordinates.containsKey(worldServerName)) {
                 coordinates.get(worldServerName)
                     .put(schematicName, schematicData);
@@ -268,7 +281,7 @@ public class ClientProxy extends CommonProxy {
      *         (number of times schematic has been rotated [0-3]), and {@link ImmutableTriple} storing X,Y,Z
      *         {@link Integer}
      */
-    public static ImmutableTriple<Boolean, Integer, ImmutableTriple<Integer, Integer, Integer>> getCoordinates(
+    public static ImmutableTriple<Boolean, ImmutablePair<ImmutableTriple<Integer, Integer, Integer>, ImmutableTriple<Integer, Integer, Integer>>, ImmutableTriple<Integer, Integer, Integer>> getCoordinates(
         String worldServerName, String schematicName) {
         try {
             Map<String, Map<String, SchematicData>> coordinates = openCoordinatesFile();
@@ -278,7 +291,12 @@ public class ClientProxy extends CommonProxy {
                     SchematicData schematicData = schematicMap.get(schematicName);
                     return new ImmutableTriple<>(
                         true,
-                        schematicData.Rotation,
+                        new ImmutablePair<>(
+                            new ImmutableTriple<>(
+                                schematicData.RotationX,
+                                schematicData.Rotation,
+                                schematicData.RotationZ),
+                            new ImmutableTriple<>(schematicData.FlipX, schematicData.FlipY, schematicData.FlipZ)),
                         new ImmutableTriple<>(schematicData.X, schematicData.Y, schematicData.Z));
                 }
             }

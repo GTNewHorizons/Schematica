@@ -49,6 +49,12 @@ public class SchematicWorld extends World {
     public boolean isRenderingLayer;
     public int renderingLayer;
     public int rotationState;
+    public int rotationStateX;
+    public int rotationStateY;
+    public int rotationStateZ;
+    public int flipStateX;
+    public int flipStateY;
+    public int flipStateZ;
 
     public SchematicWorld(ISchematic schematic) {
         super(new SaveHandlerSchematic(), "Schematica", WORLD_SETTINGS, null, new Profiler());
@@ -223,54 +229,217 @@ public class SchematicWorld extends World {
         }
     }
 
-    public void flip() {
-        // won't be implemented in 1.7.10 due to the lack of an API
-    }
-
-    public void rotate() {
+    public void flip(ForgeDirection direction) {
         final ItemStack icon = this.schematic.getIcon();
         final int width = this.schematic.getWidth();
         final int height = this.schematic.getHeight();
         final int length = this.schematic.getLength();
 
-        final ISchematic schematicRotated = new Schematic(icon, length, height, width);
+        final ISchematic schematicFlipped = new Schematic(icon, width, height, length);
 
-        for (int y = 0; y < height; y++) {
-            for (int z = 0; z < length; z++) {
-                for (int x = 0; x < width; x++) {
-                    try {
-                        getBlock(x, y, length - 1 - z).rotateBlock(this, x, y, length - 1 - z, ForgeDirection.UP);
-                    } catch (Exception e) {
-                        Reference.logger.debug("Failed to rotate block!", e);
+        switch (direction) {
+            case EAST:
+                for (int y = 0; y < height; y++) {
+                    for (int z = 0; z < length; z++) {
+                        for (int x = 0; x < width; x++) {
+                            final Block block = getBlock(width - 1 - x, y, z);
+                            final int metadata = getBlockMetadata(width - 1 - x, y, z);
+                            schematicFlipped.setBlock(x, y, z, block, metadata);
+                        }
+                    }
+                }
+                for (TileEntity tileEntity : this.schematic.getTileEntities()) {
+                    tileEntity.xCoord = width - 1 - tileEntity.xCoord;
+                    tileEntity.blockMetadata = schematicFlipped
+                        .getBlockMetadata(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord);
+                    schematicFlipped.setTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);
+                }
+                flipStateX++;
+                if (flipStateX > 1) {
+                    flipStateX = 0;
+                }
+
+                break;
+            case SOUTH: {
+                for (int y = 0; y < height; y++) {
+                    for (int z = 0; z < length; z++) {
+                        for (int x = 0; x < width; x++) {
+                            final Block block = getBlock(x, y, length - 1 - z);
+                            final int metadata = getBlockMetadata(x, y, length - 1 - z);
+                            schematicFlipped.setBlock(x, y, z, block, metadata);
+                        }
+                    }
+                }
+                for (TileEntity tileEntity : this.schematic.getTileEntities()) {
+                    tileEntity.zCoord = length - 1 - tileEntity.zCoord;
+                    tileEntity.blockMetadata = schematicFlipped
+                        .getBlockMetadata(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord);
+                    schematicFlipped.setTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);
+                }
+                flipStateZ++;
+                if (flipStateZ > 1) {
+                    flipStateZ = 0;
+                }
+
+                break;
+            }
+            case UP:
+                for (int y = 0; y < height; y++) {
+                    for (int z = 0; z < length; z++) {
+                        for (int x = 0; x < width; x++) {
+                            final Block block = getBlock(x, height - 1 - y, z);
+                            final int metadata = getBlockMetadata(x, height - 1 - y, z);
+                            schematicFlipped.setBlock(x, y, z, block, metadata);
+                        }
+                    }
+                }
+                for (TileEntity tileEntity : this.schematic.getTileEntities()) {
+                    tileEntity.yCoord = height - 1 - tileEntity.yCoord;
+                    tileEntity.blockMetadata = schematicFlipped
+                        .getBlockMetadata(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord);
+                    schematicFlipped.setTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);
+                }
+                flipStateY++;
+                if (flipStateY > 1) {
+                    flipStateY = 0;
+                }
+
+                break;
+            default:
+                Reference.logger.debug("Incorrect direction given to flip function!");
+        }
+
+        this.schematic = schematicFlipped;
+        refreshChests();
+    }
+
+    public void rotate(ForgeDirection direction) {
+        final ItemStack icon = this.schematic.getIcon();
+        final int width = this.schematic.getWidth();
+        final int height = this.schematic.getHeight();
+        final int length = this.schematic.getLength();
+
+        final ISchematic schematicRotated;
+        switch (direction) {
+            case EAST:
+                schematicRotated = new Schematic(icon, width, length, height);
+
+                for (int y = 0; y < height; y++) {
+                    for (int z = 0; z < length; z++) {
+                        for (int x = 0; x < width; x++) {
+                            try {
+                                getBlock(x, height - 1 - y, z)
+                                    .rotateBlock(this, x, height - 1 - y, z, ForgeDirection.EAST);
+                            } catch (Exception e) {
+                                Reference.logger.debug("Failed to rotate block!", e);
+                            }
+                            final Block block = getBlock(x, height - 1 - y, z);
+                            final int metadata = getBlockMetadata(x, height - 1 - y, z);
+                            schematicRotated.setBlock(x, z, y, block, metadata);
+                        }
+                    }
+                }
+
+                for (TileEntity tileEntity : this.schematic.getTileEntities()) {
+                    final int coord = tileEntity.yCoord;
+                    tileEntity.yCoord = tileEntity.zCoord;
+                    tileEntity.zCoord = height - 1 - coord;
+                    tileEntity.blockMetadata = schematicRotated
+                        .getBlockMetadata(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord);
+                    schematicRotated.setTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);
+                }
+
+                rotationStateX++;
+                if (rotationStateX > 3) {
+                    rotationStateX = 0;
+                }
+
+                this.schematic = schematicRotated;
+
+                refreshChests();
+                break;
+            case UP: // Rotation only really works when moving around the UP direction for most blocks
+                schematicRotated = new Schematic(icon, length, height, width);
+
+                for (int y = 0; y < height; y++) {
+                    for (int z = 0; z < length; z++) {
+                        for (int x = 0; x < width; x++) {
+                            try {
+                                getBlock(x, y, length - 1 - z)
+                                    .rotateBlock(this, x, y, length - 1 - z, ForgeDirection.UP);
+                            } catch (Exception e) {
+                                Reference.logger.debug("Failed to rotate block!", e);
+                            }
+
+                            final Block block = getBlock(x, y, length - 1 - z);
+                            final int metadata = getBlockMetadata(x, y, length - 1 - z);
+                            schematicRotated.setBlock(z, y, x, block, metadata);
+                        }
+                    }
+                }
+
+                for (TileEntity tileEntity : this.schematic.getTileEntities()) {
+                    final int coord = tileEntity.zCoord;
+                    tileEntity.zCoord = tileEntity.xCoord;
+                    tileEntity.xCoord = length - 1 - coord;
+                    tileEntity.blockMetadata = schematicRotated
+                        .getBlockMetadata(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord);
+
+                    if (tileEntity instanceof TileEntitySkull skullTileEntity && tileEntity.blockMetadata == 0x1) {
+                        skullTileEntity.func_145903_a((skullTileEntity.func_145906_b() + 12) & 15);
                     }
 
-                    final Block block = getBlock(x, y, length - 1 - z);
-                    final int metadata = getBlockMetadata(x, y, length - 1 - z);
-                    schematicRotated.setBlock(z, y, x, block, metadata);
+                    schematicRotated.setTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);
                 }
-            }
+
+                rotationStateY++;
+                if (rotationStateY > 3) {
+                    rotationStateY = 0;
+                }
+
+                this.schematic = schematicRotated;
+
+                refreshChests();
+                break;
+            case SOUTH:
+                schematicRotated = new Schematic(icon, height, width, length);
+
+                for (int y = 0; y < height; y++) {
+                    for (int z = 0; z < length; z++) {
+                        for (int x = 0; x < width; x++) {
+                            try {
+                                getBlock(width - 1 - x, y, z)
+                                    .rotateBlock(this, width - 1 - x, y, z, ForgeDirection.SOUTH);
+                            } catch (Exception e) {
+                                Reference.logger.debug("Failed to rotate block!", e);
+                            }
+                            final Block block = getBlock(width - 1 - x, y, z);
+                            final int metadata = getBlockMetadata(width - 1 - x, y, z);
+                            schematicRotated.setBlock(y, x, z, block, metadata);
+                        }
+                    }
+                }
+
+                for (TileEntity tileEntity : this.schematic.getTileEntities()) {
+                    final int coord = tileEntity.xCoord;
+                    tileEntity.xCoord = tileEntity.yCoord;
+                    tileEntity.yCoord = width - 1 - coord;
+                    tileEntity.blockMetadata = schematicRotated
+                        .getBlockMetadata(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord);
+                    schematicRotated.setTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);
+                }
+
+                rotationStateZ++;
+                if (rotationStateZ > 3) {
+                    rotationStateZ = 0;
+                }
+                this.schematic = schematicRotated;
+
+                refreshChests();
+                break;
+            default:
+                Reference.logger.debug("Incorrect direction given to rotate function!");
         }
-
-        for (TileEntity tileEntity : this.schematic.getTileEntities()) {
-            final int coord = tileEntity.zCoord;
-            tileEntity.zCoord = tileEntity.xCoord;
-            tileEntity.xCoord = length - 1 - coord;
-            tileEntity.blockMetadata = schematicRotated
-                .getBlockMetadata(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord);
-
-            if (tileEntity instanceof TileEntitySkull skullTileEntity && tileEntity.blockMetadata == 0x1) {
-                skullTileEntity.func_145903_a((skullTileEntity.func_145906_b() + 12) & 15);
-            }
-
-            schematicRotated.setTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);
-        }
-        rotationState++;
-        if (rotationState > 3) {
-            rotationState = 0;
-        }
-        this.schematic = schematicRotated;
-
-        refreshChests();
     }
 
     public Vector3f dimensions() {

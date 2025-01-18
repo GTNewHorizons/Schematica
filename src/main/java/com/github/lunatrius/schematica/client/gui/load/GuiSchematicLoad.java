@@ -14,7 +14,9 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
+import net.minecraftforge.common.util.ForgeDirection;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.lwjgl.Sys;
 
@@ -170,7 +172,7 @@ public class GuiSchematicLoad extends GuiScreenBase {
                 if (Schematica.proxy.loadSchematic(null, this.currentDirectory, schematicEntry.getName())) {
                     SchematicWorld schematic = ClientProxy.schematic;
                     if (schematic != null) {
-                        ImmutableTriple<Boolean, Integer, ImmutableTriple<Integer, Integer, Integer>> schematicCoordinate = ClientProxy
+                        ImmutableTriple<Boolean, ImmutablePair<ImmutableTriple<Integer, Integer, Integer>, ImmutableTriple<Integer, Integer, Integer>>, ImmutableTriple<Integer, Integer, Integer>> schematicCoordinate = ClientProxy
                             .getCoordinates(worldServerName(this.mc), schematic.name);
                         if (schematicCoordinate.left) {
                             ClientProxy.moveSchematic(
@@ -178,8 +180,29 @@ public class GuiSchematicLoad extends GuiScreenBase {
                                 schematicCoordinate.right.left,
                                 schematicCoordinate.right.middle,
                                 schematicCoordinate.right.right);
-                            for (int i = 0; i < schematicCoordinate.middle; i++) {
-                                schematic.rotate();
+                            for (int i = 0; i < schematicCoordinate.middle.left.left; i++) // RotationX
+                            {
+                                schematic.rotate(ForgeDirection.EAST);
+                            }
+                            for (int i = 0; i < schematicCoordinate.middle.left.middle; i++) // RotationY
+                            {
+                                schematic.rotate(ForgeDirection.UP);
+                            }
+                            for (int i = 0; i < schematicCoordinate.middle.left.right; i++) // RotationZ
+                            {
+                                schematic.rotate(ForgeDirection.SOUTH);
+                            }
+                            for (int i = 0; i < schematicCoordinate.middle.right.left; i++) // FlipX
+                            {
+                                schematic.flip(ForgeDirection.EAST);
+                            }
+                            for (int i = 0; i < schematicCoordinate.middle.right.middle; i++) // FlipY
+                            {
+                                schematic.flip(ForgeDirection.UP);
+                            }
+                            for (int i = 0; i < schematicCoordinate.middle.right.right; i++) // FlipZ
+                            {
+                                schematic.flip(ForgeDirection.SOUTH);
                             }
                             RendererSchematicGlobal.INSTANCE.createRendererSchematicChunks(schematic);
                             SchematicPrinter.INSTANCE.refresh();

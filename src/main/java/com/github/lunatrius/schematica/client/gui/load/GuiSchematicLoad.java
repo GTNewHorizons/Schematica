@@ -16,8 +16,6 @@ import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.lwjgl.Sys;
 
 import com.github.lunatrius.core.client.gui.GuiScreenBase;
@@ -30,6 +28,7 @@ import com.github.lunatrius.schematica.handler.ConfigurationHandler;
 import com.github.lunatrius.schematica.proxy.ClientProxy;
 import com.github.lunatrius.schematica.reference.Names;
 import com.github.lunatrius.schematica.reference.Reference;
+import com.github.lunatrius.schematica.util.Coordinates;
 import com.github.lunatrius.schematica.world.schematic.SchematicUtil;
 
 public class GuiSchematicLoad extends GuiScreenBase {
@@ -172,36 +171,25 @@ public class GuiSchematicLoad extends GuiScreenBase {
                 if (Schematica.proxy.loadSchematic(null, this.currentDirectory, schematicEntry.getName())) {
                     SchematicWorld schematic = ClientProxy.schematic;
                     if (schematic != null) {
-                        ImmutableTriple<Boolean, ImmutablePair<ImmutableTriple<Integer, Integer, Integer>, ImmutableTriple<Integer, Integer, Integer>>, ImmutableTriple<Integer, Integer, Integer>> schematicCoordinate = ClientProxy
-                            .getCoordinates(worldServerName(this.mc), schematic.name);
-                        if (schematicCoordinate.left) {
-                            ClientProxy.moveSchematic(
-                                schematic,
-                                schematicCoordinate.right.left,
-                                schematicCoordinate.right.middle,
-                                schematicCoordinate.right.right);
-                            for (int i = 0; i < schematicCoordinate.middle.left.left; i++) // RotationX
-                            {
+                        Coordinates coord = ClientProxy.getCoordinates(worldServerName(this.mc), schematic.name);
+                        if (coord != null) {
+                            ClientProxy.moveSchematic(schematic, coord.posX, coord.posY, coord.posZ);
+                            for (int i = 0; i < coord.rotX; i++) {
                                 schematic.rotate(ForgeDirection.EAST);
                             }
-                            for (int i = 0; i < schematicCoordinate.middle.left.middle; i++) // RotationY
-                            {
+                            for (int i = 0; i < coord.rotY; i++) {
                                 schematic.rotate(ForgeDirection.UP);
                             }
-                            for (int i = 0; i < schematicCoordinate.middle.left.right; i++) // RotationZ
-                            {
+                            for (int i = 0; i < coord.rotZ; i++) {
                                 schematic.rotate(ForgeDirection.SOUTH);
                             }
-                            for (int i = 0; i < schematicCoordinate.middle.right.left; i++) // FlipX
-                            {
+                            for (int i = 0; i < coord.flipX; i++) {
                                 schematic.flip(ForgeDirection.EAST);
                             }
-                            for (int i = 0; i < schematicCoordinate.middle.right.middle; i++) // FlipY
-                            {
+                            for (int i = 0; i < coord.flipY; i++) {
                                 schematic.flip(ForgeDirection.UP);
                             }
-                            for (int i = 0; i < schematicCoordinate.middle.right.right; i++) // FlipZ
-                            {
+                            for (int i = 0; i < coord.flipZ; i++) {
                                 schematic.flip(ForgeDirection.SOUTH);
                             }
                             RendererSchematicGlobal.INSTANCE.createRendererSchematicChunks(schematic);

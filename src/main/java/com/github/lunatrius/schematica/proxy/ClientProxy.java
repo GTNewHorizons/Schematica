@@ -21,9 +21,6 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Property;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.ImmutableTriple;
-
 import com.github.lunatrius.core.util.vector.Vector3d;
 import com.github.lunatrius.core.util.vector.Vector3i;
 import com.github.lunatrius.schematica.api.ISchematic;
@@ -41,6 +38,7 @@ import com.github.lunatrius.schematica.handler.client.TickHandler;
 import com.github.lunatrius.schematica.handler.client.WorldHandler;
 import com.github.lunatrius.schematica.reference.Constants;
 import com.github.lunatrius.schematica.reference.Reference;
+import com.github.lunatrius.schematica.util.Coordinates;
 import com.github.lunatrius.schematica.world.schematic.SchematicFormat;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -277,34 +275,30 @@ public class ClientProxy extends CommonProxy {
     /**
      * gets the coordinates if present
      *
-     * @return {@link ImmutableTriple} with bool (true if coordinates found, false if not), {@link Integer} rotation
-     *         (number of times schematic has been rotated [0-3]), and {@link ImmutableTriple} storing X,Y,Z
-     *         {@link Integer}
+     * @return {@link Coordinates} containing rotation, flip and position information, or null if not found.
      */
-    public static ImmutableTriple<Boolean, ImmutablePair<ImmutableTriple<Integer, Integer, Integer>, ImmutableTriple<Integer, Integer, Integer>>, ImmutableTriple<Integer, Integer, Integer>> getCoordinates(
-        String worldServerName, String schematicName) {
+    public static Coordinates getCoordinates(String worldServerName, String schematicName) {
         try {
             Map<String, Map<String, SchematicData>> coordinates = openCoordinatesFile();
             if (coordinates.containsKey(worldServerName)) {
                 Map<String, SchematicData> schematicMap = coordinates.get(worldServerName);
                 if (schematicMap.containsKey(schematicName)) {
                     SchematicData schematicData = schematicMap.get(schematicName);
-                    return new ImmutableTriple<>(
-                        true,
-                        new ImmutablePair<>(
-                            new ImmutableTriple<>(
-                                schematicData.RotationX,
-                                schematicData.Rotation,
-                                schematicData.RotationZ),
-                            new ImmutableTriple<>(schematicData.FlipX, schematicData.FlipY, schematicData.FlipZ)),
-                        new ImmutableTriple<>(schematicData.X, schematicData.Y, schematicData.Z));
+                    return new Coordinates(
+                        schematicData.RotationX,
+                        schematicData.Rotation,
+                        schematicData.RotationZ,
+                        schematicData.FlipX,
+                        schematicData.FlipY,
+                        schematicData.FlipZ,
+                        schematicData.X,
+                        schematicData.Y,
+                        schematicData.Z);
                 }
             }
-            return new ImmutableTriple<>(false, null, null);
-        } catch (Exception e) {
+        } catch (Exception ignored) {}
 
-            return new ImmutableTriple<>(false, null, null);
-        }
+        return null;
     }
 
     @Override

@@ -21,6 +21,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.github.lunatrius.core.util.vector.Vector3f;
 import com.github.lunatrius.core.util.vector.Vector3i;
 import com.github.lunatrius.schematica.api.ISchematic;
+import com.github.lunatrius.schematica.compat.architecturecraft.ArchitectureCraftHelper;
 import com.github.lunatrius.schematica.handler.ConfigurationHandler;
 import com.github.lunatrius.schematica.reference.Reference;
 import com.github.lunatrius.schematica.world.chunk.ChunkProviderSchematic;
@@ -252,6 +253,12 @@ public class SchematicWorld extends World {
                     tileEntity.xCoord = width - 1 - tileEntity.xCoord;
                     tileEntity.blockMetadata = schematicFlipped
                         .getBlockMetadata(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord);
+                    if (ArchitectureCraftHelper.isLoaded() && ArchitectureCraftHelper.isShapeBlock(
+                        schematicFlipped.getBlock(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord))) {
+                        byte[] ori = ArchitectureCraftHelper.getOrientationFromTE(tileEntity);
+                        byte[] newOri = ArchitectureCraftHelper.transformOrientationFlip(ori[0], ori[1], direction);
+                        ArchitectureCraftHelper.setOrientationOnTE(tileEntity, newOri[0], newOri[1]);
+                    }
                     schematicFlipped.setTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);
                 }
                 flipStateX++;
@@ -274,6 +281,12 @@ public class SchematicWorld extends World {
                     tileEntity.zCoord = length - 1 - tileEntity.zCoord;
                     tileEntity.blockMetadata = schematicFlipped
                         .getBlockMetadata(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord);
+                    if (ArchitectureCraftHelper.isLoaded() && ArchitectureCraftHelper.isShapeBlock(
+                        schematicFlipped.getBlock(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord))) {
+                        byte[] ori = ArchitectureCraftHelper.getOrientationFromTE(tileEntity);
+                        byte[] newOri = ArchitectureCraftHelper.transformOrientationFlip(ori[0], ori[1], direction);
+                        ArchitectureCraftHelper.setOrientationOnTE(tileEntity, newOri[0], newOri[1]);
+                    }
                     schematicFlipped.setTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);
                 }
                 flipStateZ++;
@@ -297,6 +310,12 @@ public class SchematicWorld extends World {
                     tileEntity.yCoord = height - 1 - tileEntity.yCoord;
                     tileEntity.blockMetadata = schematicFlipped
                         .getBlockMetadata(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord);
+                    if (ArchitectureCraftHelper.isLoaded() && ArchitectureCraftHelper.isShapeBlock(
+                        schematicFlipped.getBlock(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord))) {
+                        byte[] ori = ArchitectureCraftHelper.getOrientationFromTE(tileEntity);
+                        byte[] newOri = ArchitectureCraftHelper.transformOrientationFlip(ori[0], ori[1], direction);
+                        ArchitectureCraftHelper.setOrientationOnTE(tileEntity, newOri[0], newOri[1]);
+                    }
                     schematicFlipped.setTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);
                 }
                 flipStateY++;
@@ -346,6 +365,12 @@ public class SchematicWorld extends World {
                     tileEntity.zCoord = height - 1 - coord;
                     tileEntity.blockMetadata = schematicRotated
                         .getBlockMetadata(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord);
+                    if (ArchitectureCraftHelper.isLoaded() && ArchitectureCraftHelper.isShapeBlock(
+                        schematicRotated.getBlock(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord))) {
+                        byte[] ori = ArchitectureCraftHelper.getOrientationFromTE(tileEntity);
+                        byte[] newOri = ArchitectureCraftHelper.transformOrientationRotate(ori[0], ori[1], direction);
+                        ArchitectureCraftHelper.setOrientationOnTE(tileEntity, newOri[0], newOri[1]);
+                    }
                     schematicRotated.setTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);
                 }
 
@@ -389,6 +414,13 @@ public class SchematicWorld extends World {
                         skullTileEntity.func_145903_a((skullTileEntity.func_145906_b() + 12) & 15);
                     }
 
+                    if (ArchitectureCraftHelper.isLoaded() && ArchitectureCraftHelper.isShapeBlock(
+                        schematicRotated.getBlock(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord))) {
+                        byte[] ori = ArchitectureCraftHelper.getOrientationFromTE(tileEntity);
+                        byte[] newOri = ArchitectureCraftHelper.transformOrientationRotate(ori[0], ori[1], direction);
+                        ArchitectureCraftHelper.setOrientationOnTE(tileEntity, newOri[0], newOri[1]);
+                    }
+
                     schematicRotated.setTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);
                 }
 
@@ -426,6 +458,12 @@ public class SchematicWorld extends World {
                     tileEntity.yCoord = width - 1 - coord;
                     tileEntity.blockMetadata = schematicRotated
                         .getBlockMetadata(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord);
+                    if (ArchitectureCraftHelper.isLoaded() && ArchitectureCraftHelper.isShapeBlock(
+                        schematicRotated.getBlock(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord))) {
+                        byte[] ori = ArchitectureCraftHelper.getOrientationFromTE(tileEntity);
+                        byte[] newOri = ArchitectureCraftHelper.transformOrientationRotate(ori[0], ori[1], direction);
+                        ArchitectureCraftHelper.setOrientationOnTE(tileEntity, newOri[0], newOri[1]);
+                    }
                     schematicRotated.setTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);
                 }
 

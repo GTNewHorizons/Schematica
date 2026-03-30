@@ -3,4 +3,5 @@
 dependencies {
 	implementation('com.github.GTNewHorizons:LunatriusCore:1.2.1-GTNH:dev')
     compileOnly rfg.deobf('curse.maven:lotr-423748:4091561')
+    compileOnly('com.github.GTNewHorizons:ArchitectureCraft:1.12.10-feat-set-orientation.1+a970489b85:dev')
 }

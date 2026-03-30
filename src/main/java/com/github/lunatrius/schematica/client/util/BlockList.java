@@ -12,6 +12,7 @@ import net.minecraft.util.MovingObjectPosition;
 
 import com.github.lunatrius.core.entity.EntityHelper;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
+import com.github.lunatrius.schematica.compat.architecturecraft.ArchitectureCraftHelper;
 import com.github.lunatrius.schematica.reference.Reference;
 
 public class BlockList {
@@ -59,7 +60,11 @@ public class BlockList {
                         continue;
                     }
 
-                    final WrappedItemStack wrappedItemStack = findOrCreateWrappedItemStackFor(blockList, stack);
+                    final boolean isACShape = ArchitectureCraftHelper.isShapeBlock(block);
+                    final WrappedItemStack wrappedItemStack = findOrCreateWrappedItemStackFor(
+                        blockList,
+                        stack,
+                        isACShape);
                     if (isPlaced) {
                         wrappedItemStack.placed++;
                     }
@@ -69,25 +74,35 @@ public class BlockList {
         }
 
         for (WrappedItemStack wrappedItemStack : blockList) {
-            if (player.capabilities.isCreativeMode) wrappedItemStack.inventory = -1;
-            else wrappedItemStack.inventory = EntityHelper.getItemCountInInventory(
-                player.inventory,
-                wrappedItemStack.itemStack.getItem(),
-                wrappedItemStack.itemStack.getItemDamage());
+            if (player.capabilities.isCreativeMode) {
+                wrappedItemStack.inventory = -1;
+            } else if (wrappedItemStack.isACShape) {
+                wrappedItemStack.inventory = ArchitectureCraftHelper
+                    .countShapeInInventory(player.inventory, wrappedItemStack.itemStack);
+            } else {
+                wrappedItemStack.inventory = EntityHelper.getItemCountInInventory(
+                    player.inventory,
+                    wrappedItemStack.itemStack.getItem(),
+                    wrappedItemStack.itemStack.getItemDamage());
+            }
         }
 
         return blockList;
     }
 
     private WrappedItemStack findOrCreateWrappedItemStackFor(final List<WrappedItemStack> blockList,
-        final ItemStack itemStack) {
+        final ItemStack itemStack, final boolean isACShape) {
         for (final WrappedItemStack wrappedItemStack : blockList) {
             if (wrappedItemStack.itemStack.isItemEqual(itemStack)) {
+                if (isACShape
+                    && !ArchitectureCraftHelper.areShapeItemStacksEqual(wrappedItemStack.itemStack, itemStack)) {
+                    continue;
+                }
                 return wrappedItemStack;
             }
         }
 
-        final WrappedItemStack wrappedItemStack = new WrappedItemStack(itemStack.copy());
+        final WrappedItemStack wrappedItemStack = new WrappedItemStack(itemStack.copy(), isACShape);
         blockList.add(wrappedItemStack);
         return wrappedItemStack;
     }
@@ -98,9 +113,15 @@ public class BlockList {
         public int placed;
         public int total;
         public int inventory;
+        public boolean isACShape;
 
         public WrappedItemStack(final ItemStack itemStack) {
+            this(itemStack, false);
+        }
+
+        public WrappedItemStack(final ItemStack itemStack, final boolean isACShape) {
             this(itemStack, 0, 0);
+            this.isACShape = isACShape;
         }
 
         public WrappedItemStack(final ItemStack itemStack, final int placed, final int total) {

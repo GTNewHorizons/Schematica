@@ -351,7 +351,10 @@ public class RendererSchematicChunk {
                                 }
                             }
 
-                            if (block != null && block.canRenderInPass(renderPass)) {
+                            // Pass 2 is Schematica's own highlight pass, not a Minecraft render pass. Vanilla
+                            // Block.canRenderInPass(2) is always false, but some mods index arrays by pass
+                            // (ArchitectureCraft: passLayers[pass + 1]) and throw on 2.
+                            if (block != null && renderPass < 2 && block.canRenderInPass(renderPass)) {
                                 renderBlocks.renderBlockByRenderType(block, x, y, z);
                             }
                         }

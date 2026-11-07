@@ -27,6 +27,7 @@ import com.github.lunatrius.schematica.client.printer.registry.PlacementData;
 import com.github.lunatrius.schematica.client.printer.registry.PlacementRegistry;
 import com.github.lunatrius.schematica.client.util.BlockToItemStack;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
+import com.github.lunatrius.schematica.compat.BogoSorterCompat;
 import com.github.lunatrius.schematica.handler.ConfigurationHandler;
 import com.github.lunatrius.schematica.proxy.ClientProxy;
 import com.github.lunatrius.schematica.reference.Constants;
@@ -443,8 +444,17 @@ public class SchematicPrinter {
     }
 
     private boolean swapSlots(final int from, final int to) {
-        return this.minecraft.playerController
-            .windowClick(this.minecraft.thePlayer.inventoryContainer.windowId, from, to, 2, this.minecraft.thePlayer)
-            == null;
+        // Inventory Bogo Sorter blocks client-side slot clicks unless its flag is raised (see BogoSorterCompat).
+        final boolean previous = BogoSorterCompat.begin();
+        try {
+            return this.minecraft.playerController.windowClick(
+                this.minecraft.thePlayer.inventoryContainer.windowId,
+                from,
+                to,
+                2,
+                this.minecraft.thePlayer) == null;
+        } finally {
+            BogoSorterCompat.end(previous);
+        }
     }
 }

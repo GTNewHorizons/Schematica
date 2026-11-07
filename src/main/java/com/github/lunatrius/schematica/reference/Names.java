@@ -26,6 +26,8 @@ public final class Names {
         public static final String ALPHA_DESC = "Alpha value used when rendering the schematic (1.0 = opaque, 0.5 = half transparent, 0.0 = transparent).";
         public static final String HIGHLIGHT = "highlight";
         public static final String HIGHLIGHT_DESC = "Highlight invalid placed blocks and to be placed blocks.";
+        public static final String HIGHLIGHT_ALPHA = "highlightAlpha";
+        public static final String HIGHLIGHT_ALPHA_DESC = "Opacity of the highlight boxes and outlines (0.0 = invisible, 0.25 = default, 1.0 = opaque).";
         public static final String HIGHLIGHT_AIR = "highlightAir";
         public static final String HIGHLIGHT_AIR_DESC = "Highlight blocks that should be air.";
         public static final String BLOCK_DELTA = "blockDelta";

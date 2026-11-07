@@ -305,8 +305,9 @@ public class ClientProxy extends CommonProxy {
     public void preInit(FMLPreInitializationEvent event) {
         super.preInit(event);
 
-        final Property[] sliders = { ConfigurationHandler.propAlpha, ConfigurationHandler.propBlockDelta,
-            ConfigurationHandler.propPlaceDelay, ConfigurationHandler.propTimeout };
+        final Property[] sliders = { ConfigurationHandler.propAlpha, ConfigurationHandler.propHighlightAlpha,
+            ConfigurationHandler.propBlockDelta, ConfigurationHandler.propPlaceDelay,
+            ConfigurationHandler.propTimeout };
         for (Property prop : sliders) {
             prop.setConfigEntryClass(GuiConfigEntries.NumberSliderEntry.class);
         }
@@ -392,6 +393,11 @@ public class ClientProxy extends CommonProxy {
         schematic = null;
         RendererSchematicGlobal.INSTANCE.destroyRendererSchematicChunks();
         SchematicPrinter.INSTANCE.setSchematic(null);
+    }
+
+    @Override
+    public void onRenderSettingsChanged() {
+        RendererSchematicGlobal.INSTANCE.refresh();
     }
 
     @Override

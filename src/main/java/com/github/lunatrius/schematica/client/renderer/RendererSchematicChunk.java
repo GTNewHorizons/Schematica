@@ -304,7 +304,7 @@ public class RendererSchematicChunk {
                                             0.75f,
                                             0.0f,
                                             0.75f,
-                                            0.25f);
+                                            ConfigurationHandler.highlightAlpha);
                                     }
                                     if (ConfigurationHandler.drawLines) {
                                         RenderHelper.drawCuboidOutline(
@@ -314,28 +314,54 @@ public class RendererSchematicChunk {
                                             0.75f,
                                             0.0f,
                                             0.75f,
-                                            0.25f);
+                                            ConfigurationHandler.highlightAlpha);
                                     }
                                 } else if (block != mcBlock) {
                                     zero.set(x, y, z);
                                     size.set(x + 1, y + 1, z + 1);
                                     if (ConfigurationHandler.drawQuads) {
-                                        RenderHelper.drawCuboidSurface(zero, size, sides, 1.0f, 0.0f, 0.0f, 0.25f);
+                                        RenderHelper.drawCuboidSurface(
+                                            zero,
+                                            size,
+                                            sides,
+                                            1.0f,
+                                            0.0f,
+                                            0.0f,
+                                            ConfigurationHandler.highlightAlpha);
                                     }
                                     if (ConfigurationHandler.drawLines) {
-                                        RenderHelper.drawCuboidOutline(zero, size, sides, 1.0f, 0.0f, 0.0f, 0.25f);
+                                        RenderHelper.drawCuboidOutline(
+                                            zero,
+                                            size,
+                                            sides,
+                                            1.0f,
+                                            0.0f,
+                                            0.0f,
+                                            ConfigurationHandler.highlightAlpha);
                                     }
                                 } else if (this.schematic.getBlockMetadata(x, y, z)
                                     != mcWorld.getBlockMetadata(wx, wy, wz)) {
                                         zero.set(x, y, z);
                                         size.set(x + 1, y + 1, z + 1);
                                         if (ConfigurationHandler.drawQuads) {
-                                            RenderHelper
-                                                .drawCuboidSurface(zero, size, sides, 0.75f, 0.35f, 0.0f, 0.25f);
+                                            RenderHelper.drawCuboidSurface(
+                                                zero,
+                                                size,
+                                                sides,
+                                                0.75f,
+                                                0.35f,
+                                                0.0f,
+                                                ConfigurationHandler.highlightAlpha);
                                         }
                                         if (ConfigurationHandler.drawLines) {
-                                            RenderHelper
-                                                .drawCuboidOutline(zero, size, sides, 0.75f, 0.35f, 0.0f, 0.25f);
+                                            RenderHelper.drawCuboidOutline(
+                                                zero,
+                                                size,
+                                                sides,
+                                                0.75f,
+                                                0.35f,
+                                                0.0f,
+                                                ConfigurationHandler.highlightAlpha);
                                         }
                                     }
                             }
@@ -344,10 +370,24 @@ public class RendererSchematicChunk {
                                 zero.set(x, y, z);
                                 size.set(x + 1, y + 1, z + 1);
                                 if (ConfigurationHandler.drawQuads) {
-                                    RenderHelper.drawCuboidSurface(zero, size, sides, 0.0f, 0.75f, 1.0f, 0.25f);
+                                    RenderHelper.drawCuboidSurface(
+                                        zero,
+                                        size,
+                                        sides,
+                                        0.0f,
+                                        0.75f,
+                                        1.0f,
+                                        ConfigurationHandler.highlightAlpha);
                                 }
                                 if (ConfigurationHandler.drawLines) {
-                                    RenderHelper.drawCuboidOutline(zero, size, sides, 0.0f, 0.75f, 1.0f, 0.25f);
+                                    RenderHelper.drawCuboidOutline(
+                                        zero,
+                                        size,
+                                        sides,
+                                        0.0f,
+                                        0.75f,
+                                        1.0f,
+                                        ConfigurationHandler.highlightAlpha);
                                 }
                             }
 

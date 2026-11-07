@@ -60,6 +60,8 @@ schematica.config.alpha=Alpha
 schematica.config.alpha.tooltip=Alpha value used when rendering the schematic (1.0 = opaque, 0.5 = half transparent, 0.0 = transparent).
 schematica.config.highlight=Highlight Blocks
 schematica.config.highlight.tooltip=Highlight invalid placed blocks and to be placed blocks.
+schematica.config.highlightAlpha=Highlight Opacity
+schematica.config.highlightAlpha.tooltip=Opacity of the highlight boxes and outlines (0.0 = invisible, 0.25 = default, 1.0 = opaque).
 schematica.config.highlightAir=Highlight Air
 schematica.config.highlightAir.tooltip=Highlight blocks that should be air.
 schematica.config.blockDelta=Block Delta

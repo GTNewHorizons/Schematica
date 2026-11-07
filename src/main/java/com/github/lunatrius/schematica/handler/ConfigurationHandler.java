@@ -33,6 +33,7 @@ public class ConfigurationHandler {
     public static final boolean ENABLE_ALPHA_DEFAULT = false;
     public static final double ALPHA_DEFAULT = 1.0;
     public static final boolean HIGHLIGHT_DEFAULT = true;
+    public static final double HIGHLIGHT_ALPHA_DEFAULT = 0.25;
     public static final boolean HIGHLIGHT_AIR_DEFAULT = true;
     public static final double BLOCK_DELTA_DEFAULT = 0.005;
     public static final boolean DRAW_QUADS_DEFAULT = true;
@@ -62,6 +63,7 @@ public class ConfigurationHandler {
     public static boolean enableAlpha = ENABLE_ALPHA_DEFAULT;
     public static float alpha = (float) ALPHA_DEFAULT;
     public static boolean highlight = HIGHLIGHT_DEFAULT;
+    public static float highlightAlpha = (float) HIGHLIGHT_ALPHA_DEFAULT;
     public static boolean highlightAir = HIGHLIGHT_AIR_DEFAULT;
     public static float blockDelta = (float) BLOCK_DELTA_DEFAULT;
     public static boolean drawQuads = DRAW_QUADS_DEFAULT;
@@ -88,6 +90,7 @@ public class ConfigurationHandler {
     public static Property propEnableAlpha = null;
     public static Property propAlpha = null;
     public static Property propHighlight = null;
+    public static Property propHighlightAlpha = null;
     public static Property propHighlightAir = null;
     public static Property propBlockDelta = null;
     public static Property propDrawQuads = null;
@@ -143,6 +146,16 @@ public class ConfigurationHandler {
             .get(Names.Config.Category.RENDER, Names.Config.HIGHLIGHT, HIGHLIGHT_DEFAULT, Names.Config.HIGHLIGHT_DESC);
         propHighlight.setLanguageKey(Names.Config.LANG_PREFIX + "." + Names.Config.HIGHLIGHT);
         highlight = propHighlight.getBoolean(HIGHLIGHT_DEFAULT);
+
+        propHighlightAlpha = configuration.get(
+            Names.Config.Category.RENDER,
+            Names.Config.HIGHLIGHT_ALPHA,
+            HIGHLIGHT_ALPHA_DEFAULT,
+            Names.Config.HIGHLIGHT_ALPHA_DESC,
+            0.0,
+            1.0);
+        propHighlightAlpha.setLanguageKey(Names.Config.LANG_PREFIX + "." + Names.Config.HIGHLIGHT_ALPHA);
+        highlightAlpha = (float) propHighlightAlpha.getDouble(HIGHLIGHT_ALPHA_DEFAULT);
 
         propHighlightAir = configuration.get(
             Names.Config.Category.RENDER,
@@ -353,7 +366,12 @@ public class ConfigurationHandler {
     @SubscribeEvent
     public void onConfigurationChangedEvent(ConfigChangedEvent.OnConfigChangedEvent event) {
         if (event.modID.equalsIgnoreCase(Reference.MODID)) {
+            final float oldHighlightAlpha = highlightAlpha;
             loadConfiguration();
+            if (oldHighlightAlpha != highlightAlpha) {
+                // The highlight colour is baked into the chunk display lists: rebuild them.
+                Schematica.proxy.onRenderSettingsChanged();
+            }
         }
     }
 

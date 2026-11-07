@@ -44,7 +44,9 @@ public class TickHandler {
             if (this.minecraft.thePlayer != null && schematic != null && schematic.isRendering) {
                 this.minecraft.mcProfiler.startSection("printer");
                 SchematicPrinter printer = SchematicPrinter.INSTANCE;
-                if (printer.isEnabled() && printer.isPrinting() && this.ticks-- < 0) {
+                // Pre-decrement: print every placeDelay + 1 ticks (every tick at 0). The old post-decrement
+                // printed every placeDelay + 2 ticks, so placeDelay=0 still only printed every other tick.
+                if (printer.isEnabled() && printer.isPrinting() && --this.ticks < 0) {
                     this.ticks = ConfigurationHandler.placeDelay;
 
                     printer.print();

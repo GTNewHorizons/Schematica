@@ -41,6 +41,8 @@ public class ConfigurationHandler {
     public static final int PLACE_DELAY_DEFAULT = 1;
     public static final int TIMEOUT_DEFAULT = 10;
     public static final boolean PLACE_INSTANTLY_DEFAULT = false;
+    public static final int PLACE_BLOCKS_PER_ATTEMPT_DEFAULT = 4;
+    public static final int PRINT_RANGE_DEFAULT = 4;
     public static final boolean DESTROY_BLOCKS_DEFAULT = false;
     public static final boolean DESTROY_INSTANTLY_DEFAULT = false;
     public static final boolean PLACE_ADJACENT_DEFAULT = true;
@@ -71,6 +73,8 @@ public class ConfigurationHandler {
     public static int placeDelay = PLACE_DELAY_DEFAULT;
     public static int timeout = TIMEOUT_DEFAULT;
     public static boolean placeInstantly = PLACE_INSTANTLY_DEFAULT;
+    public static int placeBlocksPerAttempt = PLACE_BLOCKS_PER_ATTEMPT_DEFAULT;
+    public static int printRange = PRINT_RANGE_DEFAULT;
     public static boolean destroyBlocks = DESTROY_BLOCKS_DEFAULT;
     public static boolean destroyInstantly = DESTROY_INSTANTLY_DEFAULT;
     public static boolean placeAdjacent = PLACE_ADJACENT_DEFAULT;
@@ -98,6 +102,8 @@ public class ConfigurationHandler {
     public static Property propPlaceDelay = null;
     public static Property propTimeout = null;
     public static Property propPlaceInstantly = null;
+    public static Property propPlaceBlocksPerAttempt = null;
+    public static Property propPrintRange = null;
     public static Property propDestroyBlocks = null;
     public static Property propDestroyInstantly = null;
     public static Property propPlaceAdjacent = null;
@@ -218,6 +224,27 @@ public class ConfigurationHandler {
             Names.Config.PLACE_INSTANTLY_DESC);
         propPlaceInstantly.setLanguageKey(Names.Config.LANG_PREFIX + "." + Names.Config.PLACE_INSTANTLY);
         placeInstantly = propPlaceInstantly.getBoolean(PLACE_INSTANTLY_DEFAULT);
+
+        propPlaceBlocksPerAttempt = configuration.get(
+            Names.Config.Category.PRINTER,
+            Names.Config.PLACE_BLOCKS_PER_ATTEMPT,
+            PLACE_BLOCKS_PER_ATTEMPT_DEFAULT,
+            Names.Config.PLACE_BLOCKS_PER_ATTEMPT_DESC,
+            1,
+            64);
+        propPlaceBlocksPerAttempt
+            .setLanguageKey(Names.Config.LANG_PREFIX + "." + Names.Config.PLACE_BLOCKS_PER_ATTEMPT);
+        placeBlocksPerAttempt = propPlaceBlocksPerAttempt.getInt(PLACE_BLOCKS_PER_ATTEMPT_DEFAULT);
+
+        propPrintRange = configuration.get(
+            Names.Config.Category.PRINTER,
+            Names.Config.PRINT_RANGE,
+            PRINT_RANGE_DEFAULT,
+            Names.Config.PRINT_RANGE_DESC,
+            1,
+            6);
+        propPrintRange.setLanguageKey(Names.Config.LANG_PREFIX + "." + Names.Config.PRINT_RANGE);
+        printRange = propPrintRange.getInt(PRINT_RANGE_DEFAULT);
 
         propDestroyBlocks = configuration.get(
             Names.Config.Category.PRINTER,

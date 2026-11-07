@@ -48,6 +48,9 @@ public class SchematicPrinter {
     private SchematicWorld schematic = null;
     private byte[][][] timeout = null;
 
+    /** Squared reach the server allows for placing (NetHandlerPlayServer: 64), minus a margin. */
+    private static final double MAX_REACH_SQ = 63.0;
+
     public boolean isEnabled() {
         return this.isEnabled;
     }
@@ -96,12 +99,20 @@ public class SchematicPrinter {
         final Vector3i trans = ClientProxy.playerPosition.clone()
             .sub(this.schematic.position.x, this.schematic.position.y, this.schematic.position.z)
             .toVector3i();
-        final int minX = Math.max(0, trans.x - 3);
-        final int maxX = Math.min(this.schematic.getWidth(), trans.x + 4);
-        final int minY = Math.max(0, trans.y - 3);
-        final int maxY = Math.min(this.schematic.getHeight(), trans.y + 4);
-        final int minZ = Math.max(0, trans.z - 3);
-        final int maxZ = Math.min(this.schematic.getLength(), trans.z + 4);
+        final int range = Math.max(1, Math.min(6, ConfigurationHandler.printRange));
+        final int minX = Math.max(0, trans.x - range);
+        final int maxX = Math.min(this.schematic.getWidth(), trans.x + range + 1);
+        final int minY = Math.max(0, trans.y - range);
+        final int maxY = Math.min(this.schematic.getHeight(), trans.y + range + 1);
+        final int minZ = Math.max(0, trans.z - range);
+        final int maxZ = Math.min(this.schematic.getLength(), trans.z + range + 1);
+
+        // The server refuses placements 8 blocks or more from the player's feet: never try those.
+        final double feetX = player.posX;
+        final double feetY = player.boundingBox.minY;
+        final double feetZ = player.posZ;
+        int budget = ConfigurationHandler.placeInstantly ? Integer.MAX_VALUE
+            : Math.max(1, ConfigurationHandler.placeBlocksPerAttempt);
 
         final int slot = player.inventory.currentItem;
         final boolean isSneaking = player.isSneaking();
@@ -115,8 +126,14 @@ public class SchematicPrinter {
 
             for (int x = minX; x < maxX; x++) {
                 for (int z = minZ; z < maxZ; z++) {
+                    final double dx = this.schematic.position.x + x + 0.5 - feetX;
+                    final double dy = this.schematic.position.y + y + 0.5 - feetY;
+                    final double dz = this.schematic.position.z + z + 0.5 - feetZ;
+                    if (dx * dx + dy * dy + dz * dz >= MAX_REACH_SQ) {
+                        continue;
+                    }
                     try {
-                        if (placeBlock(world, player, x, y, z)) {
+                        if (placeBlock(world, player, x, y, z) && --budget <= 0) {
                             player.inventory.currentItem = slot;
                             syncSneaking(player, isSneaking);
                             return true;
@@ -138,7 +155,8 @@ public class SchematicPrinter {
 
     private boolean placeBlock(World world, EntityPlayer player, int x, int y, int z) {
         if (this.timeout[x][y][z] > 0) {
-            this.timeout[x][y][z] -= ConfigurationHandler.placeDelay;
+            // print() runs every placeDelay + 1 ticks, so this counts real ticks.
+            this.timeout[x][y][z] -= ConfigurationHandler.placeDelay + 1;
             return false;
         }
 
@@ -180,10 +198,7 @@ public class SchematicPrinter {
 
         if (placeBlock(world, player, wx, wy, wz, block, metadata, itemStack)) {
             this.timeout[x][y][z] = (byte) ConfigurationHandler.timeout;
-
-            if (!ConfigurationHandler.placeInstantly) {
-                return true;
-            }
+            return true; // counts against the per-attempt budget
         }
 
         return false;

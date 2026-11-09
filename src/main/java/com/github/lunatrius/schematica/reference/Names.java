@@ -26,6 +26,8 @@ public final class Names {
         public static final String ALPHA_DESC = "Alpha value used when rendering the schematic (1.0 = opaque, 0.5 = half transparent, 0.0 = transparent).";
         public static final String HIGHLIGHT = "highlight";
         public static final String HIGHLIGHT_DESC = "Highlight invalid placed blocks and to be placed blocks.";
+        public static final String HIGHLIGHT_ALPHA = "highlightAlpha";
+        public static final String HIGHLIGHT_ALPHA_DESC = "Opacity of the highlight boxes and outlines (0.0 = invisible, 0.25 = default, 1.0 = opaque).";
         public static final String HIGHLIGHT_AIR = "highlightAir";
         public static final String HIGHLIGHT_AIR_DESC = "Highlight blocks that should be air.";
         public static final String BLOCK_DELTA = "blockDelta";
@@ -41,6 +43,10 @@ public final class Names {
         public static final String TIMEOUT_DESC = "Timeout before re-trying failed blocks.";
         public static final String PLACE_INSTANTLY = "placeInstantly";
         public static final String PLACE_INSTANTLY_DESC = "Place all blocks that can be placed in one tick.";
+        public static final String PLACE_BLOCKS_PER_ATTEMPT = "placeBlocksPerAttempt";
+        public static final String PLACE_BLOCKS_PER_ATTEMPT_DESC = "Maximum blocks placed per placement attempt (ignored when placeInstantly is on).";
+        public static final String PRINT_RANGE = "printRange";
+        public static final String PRINT_RANGE_DESC = "How far from the player (in blocks, each axis) the printer looks for blocks to place. Positions the server would refuse (8 blocks or more away) are skipped.";
         public static final String DESTROY_BLOCKS = "destroyBlocks";
         public static final String DESTROY_BLOCKS_DESC = "The printer will destroy blocks (creative mode only).";
         public static final String DESTROY_INSTANTLY = "destroyInstantly";

@@ -11,6 +11,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 
+import com.github.lunatrius.schematica.FileFilterSchematic;
 import com.github.lunatrius.schematica.api.ISchematic;
 import com.github.lunatrius.schematica.api.event.PostSchematicCaptureEvent;
 import com.github.lunatrius.schematica.reference.Names;
@@ -35,6 +36,9 @@ public abstract class SchematicFormat {
                 throw new UnsupportedFormatException(format);
             }
 
+            if (schematicFormat instanceof SchematicAlpha && FileFilterSchematic.isSchemplusName(file.getName())) {
+                return ((SchematicAlpha) schematicFormat).readFromNBT(tagCompound, true);
+            }
             return schematicFormat.readFromNBT(tagCompound);
         } catch (Exception ex) {
             Reference.logger.error("Failed to read schematic!", ex);

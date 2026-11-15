@@ -19,7 +19,7 @@ public final class Names {
         public static final String SHOW_DEBUG_INFO = "showDebugInfo";
         public static final String SHOW_DEBUG_INFO_DESC = "Display extra information on the debug screen (F3).";
         public static final String EXTENDED_ID_FORMAT = "useSchematicplusFormat";
-        public static final String EXTENDED_ID_FORMAT_DESC = "Save and load schematics with a different format that supports a much higher number of block ids. Only schematics in schemplus format will be loaded.";
+        public static final String EXTENDED_ID_FORMAT_DESC = "Unused. Block ids are stored automatically: classic 12-bit data when every id is below 4096, otherwise up to 24 bits. Both .schematic and .schemplus files are loaded.";
         public static final String ALPHA_ENABLED = "alphaEnabled";
         public static final String ALPHA_ENABLED_DESC = "Enable transparent textures.";
         public static final String ALPHA = "alpha";
@@ -232,7 +232,9 @@ public final class Names {
         public static final String BLOCKS = "Blocks";
         public static final String DATA = "Data";
         public static final String ADD_BLOCKS = "AddBlocks";
+        public static final String ADD_BLOCKS_HIGH = "AddBlocksHigh";
         public static final String ADD_BLOCKS_SCHEMATICA = "Add";
+        public static final String BLOCK_ID_BYTES = "BlockIdBytes";
         public static final String WIDTH = "Width";
         public static final String LENGTH = "Length";
         public static final String HEIGHT = "Height";

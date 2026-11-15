@@ -2,10 +2,14 @@ package com.github.lunatrius.schematica;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.util.Locale;
 
-import com.github.lunatrius.schematica.handler.ConfigurationHandler;
+import com.github.lunatrius.schematica.util.FileUtils;
 
 public class FileFilterSchematic implements FileFilter {
+
+    public static final String EXTENSION_SCHEMATIC = ".schematic";
+    public static final String EXTENSION_SCHEMPLUS = ".schemplus";
 
     private final boolean directory;
 
@@ -18,14 +22,58 @@ public class FileFilterSchematic implements FileFilter {
         if (this.directory) {
             return file.isDirectory();
         }
-        if (ConfigurationHandler.useSchematicplusFormat) {
-            return file.getName()
-                .toLowerCase()
-                .endsWith(".schemplus");
-        } else {
-            return file.getName()
-                .toLowerCase()
-                .endsWith(".schematic");
+        return isSchematicName(file.getName());
+    }
+
+    public static boolean isSchematicName(String name) {
+        String lower = name.toLowerCase(Locale.ROOT);
+        return lower.endsWith(EXTENSION_SCHEMATIC) || lower.endsWith(EXTENSION_SCHEMPLUS);
+    }
+
+    public static boolean isSchemplusName(String name) {
+        return name.toLowerCase(Locale.ROOT)
+            .endsWith(EXTENSION_SCHEMPLUS);
+    }
+
+    public static String stripExtension(String filename) {
+        if (filename == null) {
+            return null;
         }
+        String lower = filename.toLowerCase(Locale.ROOT);
+        if (lower.endsWith(EXTENSION_SCHEMPLUS)) {
+            return filename.substring(0, filename.length() - EXTENSION_SCHEMPLUS.length());
+        }
+        if (lower.endsWith(EXTENSION_SCHEMATIC)) {
+            return filename.substring(0, filename.length() - EXTENSION_SCHEMATIC.length());
+        }
+        return filename;
+    }
+
+    /**
+     * Finds {@code name}, {@code name.schematic}, or {@code name.schemplus} inside {@code directory}.
+     * A bare name prefers {@code .schematic} when both files exist.
+     */
+    public static File resolve(File directory, String name) {
+        if (directory == null || name == null || name.isEmpty()) {
+            return null;
+        }
+
+        File direct = new File(directory, name);
+        if (isSchematicName(name) && direct.isFile() && FileUtils.contains(directory, direct)) {
+            return direct;
+        }
+        if (isSchematicName(name)) {
+            return null;
+        }
+
+        File schematic = new File(directory, name + EXTENSION_SCHEMATIC);
+        if (schematic.isFile() && FileUtils.contains(directory, schematic)) {
+            return schematic;
+        }
+        File schemplus = new File(directory, name + EXTENSION_SCHEMPLUS);
+        if (schemplus.isFile() && FileUtils.contains(directory, schemplus)) {
+            return schemplus;
+        }
+        return null;
     }
 }

@@ -21,7 +21,7 @@ public class Schematic implements ISchematic {
     private static final FMLControlledNamespacedRegistry<Block> BLOCK_REGISTRY = GameData.getBlockRegistry();
 
     private ItemStack icon;
-    private final short[][][] blocks;
+    private final int[][][] blocks;
     private final byte[][][] metadata;
     private final List<TileEntity> tileEntities = new ArrayList<>();
     private final List<Entity> entities = new ArrayList<>();
@@ -31,7 +31,7 @@ public class Schematic implements ISchematic {
 
     public Schematic(final ItemStack icon, final int width, final int height, final int length) {
         this.icon = icon;
-        this.blocks = new short[width][height][length];
+        this.blocks = new int[width][height][length];
         this.metadata = new byte[width][height][length];
 
         this.width = width;
@@ -64,7 +64,7 @@ public class Schematic implements ISchematic {
             return false;
         }
 
-        this.blocks[x][y][z] = (short) id;
+        this.blocks[x][y][z] = id;
         setBlockMetadata(x, y, z, metadata);
         return true;
     }

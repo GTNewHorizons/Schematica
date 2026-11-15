@@ -14,7 +14,7 @@ import cpw.mods.fml.common.eventhandler.Event;
  */
 public class PreSchematicSaveEvent extends Event {
 
-    private final Map<String, Short> mappings;
+    private final Map<String, Integer> mappings;
 
     /**
      * The schematic that will be saved.
@@ -27,11 +27,11 @@ public class PreSchematicSaveEvent extends Event {
     public final NBTTagCompound extendedMetadata;
 
     @Deprecated
-    public PreSchematicSaveEvent(Map<String, Short> mappings) {
+    public PreSchematicSaveEvent(Map<String, Integer> mappings) {
         this(null, mappings);
     }
 
-    public PreSchematicSaveEvent(ISchematic schematic, Map<String, Short> mappings) {
+    public PreSchematicSaveEvent(ISchematic schematic, Map<String, Integer> mappings) {
         this.schematic = schematic;
         this.mappings = mappings;
         this.extendedMetadata = new NBTTagCompound();
@@ -59,7 +59,7 @@ public class PreSchematicSaveEvent extends Event {
                     newName));
         }
 
-        Short id = this.mappings.get(oldName);
+        Integer id = this.mappings.get(oldName);
         if (id != null) {
             this.mappings.remove(oldName);
             this.mappings.put(newName, id);

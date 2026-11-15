@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiSlot;
 import net.minecraft.client.renderer.Tessellator;
 
+import com.github.lunatrius.schematica.FileFilterSchematic;
 import com.github.lunatrius.schematica.client.gui.GuiHelper;
 
 public class GuiSchematicLoadSlot extends GuiSlot {
@@ -64,7 +65,7 @@ public class GuiSchematicLoadSlot extends GuiSlot {
         if (schematic.isDirectory()) {
             schematicName += "/";
         } else {
-            schematicName = schematicName.replaceAll("(?i)\\.schematic$", "");
+            schematicName = FileFilterSchematic.stripExtension(schematicName);
         }
 
         GuiHelper

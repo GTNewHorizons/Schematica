@@ -59,7 +59,7 @@ public class FileFilterSchematic implements FileFilter {
         }
 
         File direct = new File(directory, name);
-        if (isSchematicName(name) && direct.isFile() && FileUtils.contains(directory, direct)) {
+        if (isSchematicName(name) && FileUtils.contains(directory, direct) && direct.isFile()) {
             return direct;
         }
         if (isSchematicName(name)) {
@@ -67,11 +67,11 @@ public class FileFilterSchematic implements FileFilter {
         }
 
         File schematic = new File(directory, name + EXTENSION_SCHEMATIC);
-        if (schematic.isFile() && FileUtils.contains(directory, schematic)) {
+        if (FileUtils.contains(directory, schematic) && schematic.isFile()) {
             return schematic;
         }
         File schemplus = new File(directory, name + EXTENSION_SCHEMPLUS);
-        if (schemplus.isFile() && FileUtils.contains(directory, schemplus)) {
+        if (FileUtils.contains(directory, schemplus) && schemplus.isFile()) {
             return schemplus;
         }
         return null;

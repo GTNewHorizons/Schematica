@@ -36,8 +36,9 @@ public abstract class SchematicFormat {
                 throw new UnsupportedFormatException(format);
             }
 
-            if (schematicFormat instanceof SchematicAlpha && FileFilterSchematic.isSchemplusName(file.getName())) {
-                return ((SchematicAlpha) schematicFormat).readFromNBT(tagCompound, true);
+            if (schematicFormat instanceof SchematicAlpha alphaFormat
+                && FileFilterSchematic.isSchemplusName(file.getName())) {
+                return alphaFormat.readFromNBT(tagCompound, true);
             }
             return schematicFormat.readFromNBT(tagCompound);
         } catch (Exception ex) {

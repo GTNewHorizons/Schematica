@@ -42,6 +42,9 @@ final class CarpentersPrinter {
         int x, int y, int z) {
         final World world = interaction.world;
         final TileEntity placed = world.getTileEntity(x, y, z);
+        if (!CarpentersBlocksSupport.canConfigure(block, placed, interaction.player)) {
+            return false;
+        }
         final CarpentersHammerSupport.Adjustment adjustment = CarpentersHammerSupport
             .findAdjustment(block, schematic, target, placed);
         if (adjustment != null && applyHammer(interaction, adjustment, x, y, z)) {

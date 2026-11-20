@@ -16,6 +16,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.carpentersblocks.block.BlockCarpentersBlock;
 import com.carpentersblocks.block.BlockCarpentersGarageDoor;
+import com.carpentersblocks.block.BlockCarpentersSafe;
 import com.carpentersblocks.block.BlockCarpentersSlope;
 import com.carpentersblocks.block.BlockCarpentersStairs;
 import com.carpentersblocks.block.BlockCoverable;
@@ -23,6 +24,7 @@ import com.carpentersblocks.data.GarageDoor;
 import com.carpentersblocks.data.Stairs;
 import com.carpentersblocks.tileentity.TEBase;
 import com.carpentersblocks.util.BlockProperties;
+import com.carpentersblocks.util.protection.PlayerPermissions;
 import com.carpentersblocks.util.registry.FeatureRegistry;
 import com.github.lunatrius.schematica.client.util.BlockToItemStack;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
@@ -46,6 +48,12 @@ public final class CarpentersBlocksSupport {
 
     public static boolean isGarageDoor(Block block) {
         return block instanceof BlockCarpentersGarageDoor;
+    }
+
+    public static boolean canConfigure(Block block, TileEntity tile, EntityPlayer player) {
+        // A rejected configuration click can open a safe. A remote client cannot check operator status.
+        return tile instanceof TEBase carpenter && (!(block instanceof BlockCarpentersSafe)
+            || PlayerPermissions.hasElevatedPermission(carpenter, player, true));
     }
 
     public static boolean passesThroughMicroblockClick(Block block) {

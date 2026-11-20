@@ -168,7 +168,7 @@ public final class ArchitectureCraftSupport {
             shape.setOffsetX(-shape.getOffsetX());
             // Placement symmetry differs from the mirrored geometry of these models.
             mirrorTurn = switch (shape.shape) {
-                case DoricTriglyphCorner -> 1;
+                case AngledRoofRidge, DoricTriglyphCorner -> 1;
                 case IonicCapital, DoricCapital, CorinthianCapital -> 2;
                 default -> shape.shape.symmetry == ShapeSymmetry.Unilateral ? 1 : 0;
             };

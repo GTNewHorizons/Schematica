@@ -42,12 +42,14 @@ final class CarpentersPrinter {
         int x, int y, int z) {
         final World world = interaction.world;
         final TileEntity placed = world.getTileEntity(x, y, z);
-        if (!CarpentersBlocksSupport.canConfigure(block, placed, interaction.player)) {
+        if (!CarpentersBlocksSupport.canConfigure(placed, interaction.player)) {
             return false;
         }
         final CarpentersHammerSupport.Adjustment adjustment = CarpentersHammerSupport
             .findAdjustment(block, schematic, target, placed);
-        if (adjustment != null && applyHammer(interaction, adjustment, x, y, z)) {
+        if (adjustment != null && adjustment.affected.stream()
+            .allMatch(piece -> CarpentersBlocksSupport.canConfigure(piece, interaction.player))
+            && applyHammer(interaction, adjustment, x, y, z)) {
             final PendingClick click = new PendingClick(world, this.currentPass, () -> adjustment.isConfirmed(world));
             for (TileEntity piece : adjustment.affected) {
                 this.pendingClicks.put(new ChunkPosition(piece.xCoord, piece.yCoord, piece.zCoord), click);

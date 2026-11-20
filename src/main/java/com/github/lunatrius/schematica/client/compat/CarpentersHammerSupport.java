@@ -52,6 +52,7 @@ import com.carpentersblocks.data.Stairs;
 import com.carpentersblocks.data.Torch;
 import com.carpentersblocks.tileentity.TEBase;
 import com.carpentersblocks.util.handler.DesignHandler;
+import com.carpentersblocks.util.registry.FeatureRegistry;
 import com.carpentersblocks.util.registry.ItemRegistry;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
 
@@ -214,18 +215,21 @@ public final class CarpentersHammerSupport {
                 .ordinal() < 2 || door.getDirection(actual) == ForgeDirection.UNKNOWN || !door.isVisible(actual)) {
                 return Collections.emptyList();
             }
-            final Collection<TEBase> pieces = door.getBlocks(actual, block);
-            final int type = door.getType(actual);
-            if (click == Click.RIGHT && door.isOpen(actual)) {
-                // An open door activates the bottommost panel, so every possible source must agree on the current
-                // style.
-                for (TEBase piece : pieces) {
-                    if (door.getType(piece) != type) {
-                        return Collections.emptyList();
-                    }
+            TEBase activation = actual;
+            if (click != Click.LEFT && door.isOpen(actual)) {
+                // Carpenter's Blocks redirects both right-click paths to the bottom of an open door.
+                activation = door.getBottommost(world, actual.xCoord, actual.yCoord, actual.zCoord);
+                if (activation == null || door.getDirection(activation) != door.getDirection(actual)
+                    || (click == Click.RIGHT ? door.getType(activation) != door.getType(actual)
+                        : door.getRigidity(activation) != door.getRigidity(actual))) {
+                    return Collections.emptyList();
                 }
             }
-            return pieces;
+            final Collection<TEBase> pieces = door.getBlocks(activation, block);
+            // A capped client search can omit panels the server will change.
+            return pieces.size() > FeatureRegistry.multiBlockSizeLimit || !pieces.contains(actual)
+                ? Collections.emptyList()
+                : pieces;
         }
         if (block instanceof BlockCarpentersBed) {
             final TEBase other = Bed.getOppositeTE(actual);

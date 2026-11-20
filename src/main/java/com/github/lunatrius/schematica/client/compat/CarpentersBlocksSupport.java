@@ -16,7 +16,6 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.carpentersblocks.block.BlockCarpentersBlock;
 import com.carpentersblocks.block.BlockCarpentersGarageDoor;
-import com.carpentersblocks.block.BlockCarpentersSafe;
 import com.carpentersblocks.block.BlockCarpentersSlope;
 import com.carpentersblocks.block.BlockCarpentersStairs;
 import com.carpentersblocks.block.BlockCoverable;
@@ -54,10 +53,9 @@ public final class CarpentersBlocksSupport {
         return tile instanceof TEBase carpenter && !GarageDoor.INSTANCE.isHost(carpenter);
     }
 
-    public static boolean canConfigure(Block block, TileEntity tile, EntityPlayer player) {
-        // A rejected configuration click can open a safe. A remote client cannot check operator status.
-        return tile instanceof TEBase carpenter && (!(block instanceof BlockCarpentersSafe)
-            || PlayerPermissions.hasElevatedPermission(carpenter, player, true));
+    public static boolean canConfigure(TileEntity tile, EntityPlayer player) {
+        // A rejected edit can fall through to normal activation. Remote clients only know the synced owner.
+        return tile instanceof TEBase carpenter && PlayerPermissions.hasElevatedPermission(carpenter, player, true);
     }
 
     public static boolean passesThroughMicroblockClick(Block block) {

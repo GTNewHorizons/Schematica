@@ -6,6 +6,7 @@ import net.minecraft.util.Vec3;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.github.lunatrius.schematica.client.compat.ArchitectureCraftSupport;
+import com.github.lunatrius.schematica.handler.ConfigurationHandler;
 
 final class ArchitectureCraftPrinter {
 
@@ -15,12 +16,18 @@ final class ArchitectureCraftPrinter {
         if (!interaction.canSelectItem(item)) {
             return false;
         }
-        for (ForgeDirection support : interaction.findSupports(x, y, z)) {
+        final ForgeDirection[] supports = interaction.findSupports(x, y, z);
+        final boolean hasSupport = supports.length > 0;
+        if (!hasSupport && ConfigurationHandler.placeAdjacent) {
+            return false;
+        }
+        for (ForgeDirection support : hasSupport ? supports : ForgeDirection.VALID_DIRECTIONS) {
             for (boolean sneaking : new boolean[] { true, false }) {
                 // A standing click on the support could activate it instead of placing the shape.
-                final int clickedX = x + (sneaking ? support.offsetX : 0);
-                final int clickedY = y + (sneaking ? support.offsetY : 0);
-                final int clickedZ = z + (sneaking ? support.offsetZ : 0);
+                final boolean clickSupport = hasSupport && sneaking;
+                final int clickedX = x + (clickSupport ? support.offsetX : 0);
+                final int clickedY = y + (clickSupport ? support.offsetY : 0);
+                final int clickedZ = z + (clickSupport ? support.offsetZ : 0);
                 if (!PrinterInteraction
                     .canClickForPlacement(interaction.world.getBlock(clickedX, clickedY, clickedZ), item, sneaking)) {
                     continue;
@@ -37,7 +44,7 @@ final class ArchitectureCraftPrinter {
                             clickedZ,
                             support.getOpposite()
                                 .ordinal(),
-                            sneaking ? hit : hit.addVector(-support.offsetX, -support.offsetY, -support.offsetZ)));
+                            clickSupport ? hit : hit.addVector(-support.offsetX, -support.offsetY, -support.offsetZ)));
                 }
             }
         }

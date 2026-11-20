@@ -1,7 +1,9 @@
 package com.github.lunatrius.schematica.client.printer;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockHopper;
 import net.minecraft.block.BlockPistonBase;
+import net.minecraft.block.BlockRotatedPillar;
 import net.minecraft.block.BlockSlab;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
@@ -273,15 +275,17 @@ public class SchematicPrinter {
 
         final boolean adjacent = direction != ForgeDirection.UNKNOWN;
         if (!adjacent) {
+            final boolean needsMappedSupport = data != null && data.type == PlacementData.PlacementType.BLOCK
+                && !data.mapping.isEmpty()
+                && !(block instanceof BlockRotatedPillar || block instanceof BlockHopper);
             if ((ConfigurationHandler.placeAdjacent && solidSides.length == 0)
-                || (validSides.length == 0 && data != null
-                    && data.type == PlacementData.PlacementType.BLOCK
-                    && !data.mapping.isEmpty())
+                || (needsMappedSupport && validSides.length == 0)
                 || !(itemStack.getItem() instanceof ItemBlock)) {
                 return false;
             }
-            final ForgeDirection[] valid = data == null ? ForgeDirection.VALID_DIRECTIONS
-                : data.getValidDirections(ForgeDirection.VALID_DIRECTIONS, metadata);
+            final ForgeDirection[] valid = needsMappedSupport ? validSides
+                : data == null ? ForgeDirection.VALID_DIRECTIONS
+                    : data.getValidDirections(ForgeDirection.VALID_DIRECTIONS, metadata);
             for (ForgeDirection side : valid) {
                 // ItemSlab checks the block across the clicked face before placing into the clicked cell.
                 if (!slab

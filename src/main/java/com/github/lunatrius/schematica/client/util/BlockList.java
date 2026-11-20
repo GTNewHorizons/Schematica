@@ -3,16 +3,24 @@ package com.github.lunatrius.schematica.client.util;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.blay09.mods.cookingforblockheads.utils.DyeUtils;
 import net.minecraft.block.Block;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.tileentity.TileEntity;
 
-import com.github.lunatrius.core.entity.EntityHelper;
+import com.github.lunatrius.schematica.client.compat.ArchitectureCraftSupport;
+import com.github.lunatrius.schematica.client.compat.CarpentersBlocksSupport;
+import com.github.lunatrius.schematica.client.compat.MicroblockSupport;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
+import com.github.lunatrius.schematica.nbt.NBTHelper;
+import com.github.lunatrius.schematica.reference.Mods;
 import com.github.lunatrius.schematica.reference.Reference;
+
+import cpw.mods.fml.common.registry.GameRegistry;
 
 public class BlockList {
 
@@ -23,8 +31,6 @@ public class BlockList {
         if (world == null) {
             return blockList;
         }
-
-        final MovingObjectPosition movingObjectPosition = new MovingObjectPosition(player);
 
         for (int y = 0; y < world.getHeight(); y++) {
             for (int x = 0; x < world.getWidth(); x++) {
@@ -42,52 +48,140 @@ public class BlockList {
                     final int wx = world.position.x + x;
                     final int wy = world.position.y + y;
                     final int wz = world.position.z + z;
-                    final Block mcBlock = mcWorld.getBlock(wx, wy, wz);
-                    final boolean isPlaced = block == mcBlock
-                        && world.getBlockMetadata(x, y, z) == mcWorld.getBlockMetadata(wx, wy, wz);
-
-                    ItemStack stack = null;
-
-                    try {
-                        stack = block.getPickBlock(movingObjectPosition, world, x, y, z, player);
-                    } catch (final Exception e) {
-                        Reference.logger.debug("Could not get the pick block for: {}", block, e);
+                    if (Mods.FORGE_MICROBLOCK && block.hasTileEntity(world.getBlockMetadata(x, y, z))
+                        && MicroblockSupport.addMaterials(
+                            world.getTileEntity(x, y, z),
+                            mcWorld.getTileEntity(wx, wy, wz),
+                            (stack, placed) -> addMaterial(blockList, stack, stack.stackSize, placed))) {
+                        continue;
                     }
+                    final Block mcBlock = mcWorld.getBlock(wx, wy, wz);
+                    final boolean carpenter = Mods.CARPENTERS_BLOCKS && CarpentersBlocksSupport.isCoverable(block);
+                    if (carpenter) {
+                        CarpentersBlocksSupport.addMaterials(
+                            world.getTileEntity(x, y, z),
+                            block == mcBlock ? mcWorld.getTileEntity(wx, wy, wz) : null,
+                            (material, placed) -> addMaterial(blockList, material, 1, placed));
+                    }
+                    final ItemStack stack = BlockToItemStack.getItemStack(player, block, world, x, y, z);
 
                     if (stack == null || stack.getItem() == null) {
                         Reference.logger.debug("Could not find the item for: {}", block);
                         continue;
                     }
 
-                    final WrappedItemStack wrappedItemStack = findOrCreateWrappedItemStackFor(blockList, stack);
-                    if (isPlaced) {
-                        wrappedItemStack.placed++;
+                    final ItemStack placed = block == mcBlock && (carpenter || BlockToItemStack
+                        .matchesMetadata(block, mcWorld.getBlockMetadata(wx, wy, wz), world.getBlockMetadata(x, y, z)))
+                            ? BlockToItemStack.getItemStack(player, mcBlock, mcWorld, wx, wy, wz)
+                            : null;
+                    addMaterial(blockList, stack, 1, placed != null && BlockToItemStack.matches(placed, stack));
+                    if (Mods.ARCHITECTURE_CRAFT && ArchitectureCraftSupport.isShapeBlock(block)) {
+                        final ItemStack secondary = ArchitectureCraftSupport
+                            .getSecondaryItem(world.getTileEntity(x, y, z));
+                        if (secondary != null) {
+                            final ItemStack actual = block == mcBlock
+                                ? ArchitectureCraftSupport.getSecondaryItem(mcWorld.getTileEntity(wx, wy, wz))
+                                : null;
+                            addMaterial(
+                                blockList,
+                                secondary,
+                                secondary.stackSize,
+                                actual != null && BlockToItemStack.matches(actual, secondary));
+                        }
                     }
-                    wrappedItemStack.total++;
+                    if (Mods.COOKING_FOR_BLOCKHEADS && block.hasTileEntity(world.getBlockMetadata(x, y, z))) {
+                        final GameRegistry.UniqueIdentifier name = GameRegistry.findUniqueIdentifierFor(block);
+                        if (name != null && Mods.COOKING_FOR_BLOCKHEADS_ID.equals(name.modId)) {
+                            final int color = kitchenColor(world.getTileEntity(x, y, z));
+                            final boolean pairedFridge = "fridge".equals(name.name) && !world.isRenderingLayer
+                                && y > 0
+                                && world.getBlock(x, y - 1, z) == block
+                                && kitchenColor(world.getTileEntity(x, y - 1, z)) == color;
+                            if (color > 0 && color <= 15 && !pairedFridge) {
+                                final boolean dyed = block == mcBlock
+                                    && kitchenColor(mcWorld.getTileEntity(wx, wy, wz)) == color;
+                                final WrappedItemStack dye = addMaterial(
+                                    blockList,
+                                    new ItemStack(Items.dye, 1, 15 - color),
+                                    1,
+                                    dyed);
+                                if (!dyed) {
+                                    dye.kitchenDyesNeeded++;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
 
         for (WrappedItemStack wrappedItemStack : blockList) {
-            if (player.capabilities.isCreativeMode) wrappedItemStack.inventory = -1;
-            else wrappedItemStack.inventory = EntityHelper.getItemCountInInventory(
-                player.inventory,
-                wrappedItemStack.itemStack.getItem(),
-                wrappedItemStack.itemStack.getItemDamage());
+            final ItemStack target = wrappedItemStack.itemStack;
+            if (player.capabilities.isCreativeMode) {
+                wrappedItemStack.inventory = -1;
+            } else {
+                for (ItemStack stack : player.inventory.mainInventory) {
+                    if (stack != null && BlockToItemStack.matches(stack, target)) {
+                        wrappedItemStack.inventory += stack.stackSize;
+                    }
+                }
+            }
         }
 
+        if (Mods.COOKING_FOR_BLOCKHEADS && !player.capabilities.isCreativeMode) {
+            addKitchenDyeSubstitutes(blockList, player.inventory.mainInventory);
+        }
         return blockList;
+    }
+
+    private void addKitchenDyeSubstitutes(List<WrappedItemStack> materials, ItemStack[] inventory) {
+        for (WrappedItemStack dye : materials) {
+            if (dye.kitchenDyesNeeded == 0) {
+                continue;
+            }
+            final int damage = dye.itemStack.getItemDamage();
+            int available = 0;
+            for (ItemStack stack : inventory) {
+                if (stack != null && !BlockToItemStack.matches(stack, dye.itemStack)
+                    && DyeUtils.rawDyeDamageFromStack(stack) == damage) {
+                    available += stack.stackSize;
+                }
+            }
+            // Reserve dyes that a different row needs as exact ingredients before counting substitutes.
+            for (WrappedItemStack material : materials) {
+                if (material != dye && DyeUtils.rawDyeDamageFromStack(material.itemStack) == damage) {
+                    available -= Math.min(material.inventory, material.total - material.placed);
+                }
+            }
+            dye.inventory += Math.min(Math.max(available, 0), dye.kitchenDyesNeeded);
+        }
+    }
+
+    private int kitchenColor(TileEntity tile) {
+        return tile == null ? 0
+            : NBTHelper.writeTileEntityToCompound(tile)
+                .getByte("Color");
+    }
+
+    private WrappedItemStack addMaterial(List<WrappedItemStack> blockList, ItemStack stack, int count, boolean placed) {
+        final WrappedItemStack entry = findOrCreateWrappedItemStackFor(blockList, stack);
+        if (placed) {
+            entry.placed += count;
+        }
+        entry.total += count;
+        return entry;
     }
 
     private WrappedItemStack findOrCreateWrappedItemStackFor(final List<WrappedItemStack> blockList,
         final ItemStack itemStack) {
         for (final WrappedItemStack wrappedItemStack : blockList) {
-            if (wrappedItemStack.itemStack.isItemEqual(itemStack)) {
+            if (BlockToItemStack.matches(wrappedItemStack.itemStack, itemStack)) {
                 return wrappedItemStack;
             }
         }
 
         final WrappedItemStack wrappedItemStack = new WrappedItemStack(itemStack.copy());
+        wrappedItemStack.itemStack.stackSize = 1;
         blockList.add(wrappedItemStack);
         return wrappedItemStack;
     }
@@ -98,6 +192,7 @@ public class BlockList {
         public int placed;
         public int total;
         public int inventory;
+        private int kitchenDyesNeeded;
 
         public WrappedItemStack(final ItemStack itemStack) {
             this(itemStack, 0, 0);
@@ -110,8 +205,14 @@ public class BlockList {
         }
 
         public String getItemStackDisplayName() {
-            return this.itemStack.getItem()
-                .getItemStackDisplayName(this.itemStack);
+            final String name = this.itemStack.getDisplayName();
+            if (Mods.ARCHITECTURE_CRAFT && ArchitectureCraftSupport.isShapeItem(this.itemStack)) {
+                final String material = ArchitectureCraftSupport.getMaterialName(this.itemStack);
+                if (!material.isEmpty()) {
+                    return name + " (" + material + ")";
+                }
+            }
+            return name;
         }
 
         public String getFormattedAmount() {

@@ -21,7 +21,9 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.github.lunatrius.core.util.vector.Vector3f;
 import com.github.lunatrius.core.util.vector.Vector3i;
 import com.github.lunatrius.schematica.api.ISchematic;
+import com.github.lunatrius.schematica.client.compat.ArchitectureCraftSupport;
 import com.github.lunatrius.schematica.handler.ConfigurationHandler;
+import com.github.lunatrius.schematica.reference.Mods;
 import com.github.lunatrius.schematica.reference.Reference;
 import com.github.lunatrius.schematica.world.chunk.ChunkProviderSchematic;
 import com.github.lunatrius.schematica.world.storage.SaveHandlerSchematic;
@@ -310,6 +312,7 @@ public class SchematicWorld extends World {
         }
 
         this.schematic = schematicFlipped;
+        transformShapeTiles(direction, true);
         refreshChests();
     }
 
@@ -439,6 +442,16 @@ public class SchematicWorld extends World {
                 break;
             default:
                 Reference.logger.debug("Incorrect direction given to rotate function!");
+                return;
+        }
+        transformShapeTiles(direction, false);
+    }
+
+    private void transformShapeTiles(ForgeDirection direction, boolean mirror) {
+        if (Mods.ARCHITECTURE_CRAFT) {
+            for (TileEntity tile : this.schematic.getTileEntities()) {
+                ArchitectureCraftSupport.transform(tile, direction, mirror);
+            }
         }
     }
 

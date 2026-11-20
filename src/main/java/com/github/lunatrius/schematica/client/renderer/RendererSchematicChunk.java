@@ -15,17 +15,22 @@ import net.minecraft.profiler.Profiler;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.world.IBlockAccess;
+import net.minecraftforge.client.ForgeHooksClient;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 
 import com.github.lunatrius.core.util.vector.Vector3d;
 import com.github.lunatrius.core.util.vector.Vector3f;
+import com.github.lunatrius.schematica.client.compat.CarpentersBlocksSupport;
+import com.github.lunatrius.schematica.client.compat.MicroblockSupport;
 import com.github.lunatrius.schematica.client.renderer.shader.ShaderProgram;
+import com.github.lunatrius.schematica.client.util.BlockToItemStack;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
 import com.github.lunatrius.schematica.handler.ConfigurationHandler;
 import com.github.lunatrius.schematica.proxy.ClientProxy;
 import com.github.lunatrius.schematica.reference.Constants;
+import com.github.lunatrius.schematica.reference.Mods;
 import com.github.lunatrius.schematica.reference.Reference;
 
 public class RendererSchematicChunk {
@@ -145,8 +150,15 @@ public class RendererSchematicChunk {
                 }
 
                 GL11.glNewList(this.glList + pass, GL11.GL_COMPILE);
-                renderBlocks(pass, minX, minY, minZ, maxX, maxY, maxZ);
-                GL11.glEndList();
+                final int previousPass = ForgeHooksClient.getWorldRenderPass();
+                try {
+                    // Multipart uses Forge's chunk-building pass to choose the parts to render.
+                    ForgeHooksClient.worldRenderPass = pass;
+                    renderBlocks(pass, minX, minY, minZ, maxX, maxY, maxZ);
+                } finally {
+                    ForgeHooksClient.worldRenderPass = previousPass;
+                    GL11.glEndList();
+                }
 
                 GL11.glNewList(this.glListHighlight + pass, GL11.GL_COMPILE);
                 int quadCount = RenderHelper.getQuadCount();
@@ -236,6 +248,8 @@ public class RendererSchematicChunk {
     public void renderBlocks(int renderPass, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
         IBlockAccess mcWorld = this.minecraft.theWorld;
         RenderBlocks renderBlocks = RendererSchematicGlobal.INSTANCE.renderBlocks;
+        final boolean renderMicroblocks = renderPass < 2 && Mods.FORGE_MICROBLOCK;
+        final boolean highlightCarpenters = renderPass == 2 && Mods.CARPENTERS_BLOCKS;
 
         int x, y, z, wx, wy, wz;
         int sides;
@@ -292,6 +306,16 @@ public class RendererSchematicChunk {
                             || ConfigurationHandler.isExtraAirBlock(mcBlock);
 
                         if (!isMcAirBlock) {
+                            if (renderMicroblocks && block == mcBlock
+                                && block.hasTileEntity(this.schematic.getBlockMetadata(x, y, z))) {
+                                MicroblockSupport.renderMissingParts(
+                                    this.schematic,
+                                    mcWorld.getTileEntity(wx, wy, wz),
+                                    x,
+                                    y,
+                                    z,
+                                    renderPass);
+                            }
                             if (ConfigurationHandler.highlight && renderPass == 2) {
                                 if (isAirBlock && ConfigurationHandler.highlightAir) {
                                     zero.set(x, y, z);
@@ -325,19 +349,26 @@ public class RendererSchematicChunk {
                                     if (ConfigurationHandler.drawLines) {
                                         RenderHelper.drawCuboidOutline(zero, size, sides, 1.0f, 0.0f, 0.0f, 0.25f);
                                     }
-                                } else if (this.schematic.getBlockMetadata(x, y, z)
-                                    != mcWorld.getBlockMetadata(wx, wy, wz)) {
-                                        zero.set(x, y, z);
-                                        size.set(x + 1, y + 1, z + 1);
-                                        if (ConfigurationHandler.drawQuads) {
-                                            RenderHelper
-                                                .drawCuboidSurface(zero, size, sides, 0.75f, 0.35f, 0.0f, 0.25f);
+                                } else if (highlightCarpenters && CarpentersBlocksSupport.isCoverable(block)
+                                    ? !CarpentersBlocksSupport.matches(
+                                        block,
+                                        this.schematic.getTileEntity(x, y, z),
+                                        mcWorld.getTileEntity(wx, wy, wz))
+                                    : !BlockToItemStack.matchesMetadata(
+                                        block,
+                                        mcWorld.getBlockMetadata(wx, wy, wz),
+                                        this.schematic.getBlockMetadata(x, y, z))) {
+                                            zero.set(x, y, z);
+                                            size.set(x + 1, y + 1, z + 1);
+                                            if (ConfigurationHandler.drawQuads) {
+                                                RenderHelper
+                                                    .drawCuboidSurface(zero, size, sides, 0.75f, 0.35f, 0.0f, 0.25f);
+                                            }
+                                            if (ConfigurationHandler.drawLines) {
+                                                RenderHelper
+                                                    .drawCuboidOutline(zero, size, sides, 0.75f, 0.35f, 0.0f, 0.25f);
+                                            }
                                         }
-                                        if (ConfigurationHandler.drawLines) {
-                                            RenderHelper
-                                                .drawCuboidOutline(zero, size, sides, 0.75f, 0.35f, 0.0f, 0.25f);
-                                        }
-                                    }
                             }
                         } else if (!isAirBlock) {
                             if (ConfigurationHandler.highlight && renderPass == 2) {

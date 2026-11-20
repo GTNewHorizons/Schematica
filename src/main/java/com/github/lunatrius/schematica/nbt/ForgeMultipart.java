@@ -10,10 +10,10 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.common.util.Constants;
 
+import com.github.lunatrius.schematica.reference.Mods;
 import com.github.lunatrius.schematica.reference.Reference;
 
 import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 import scala.Option;
 import scala.collection.Iterable;
@@ -28,6 +28,8 @@ public class ForgeMultipart {
     private static Map<String, Object> instancesTypeMap;
     private static Method methodMaterialID;
     private static Method methodCreatePart;
+    private static Object instanceMultiPartRegistry;
+    private static Method methodLoadRegisteredPart;
     private static Method methodLoad;
     private static Method methodOnPartChanged;
     private static Object instanceMultipartGenerator$;
@@ -36,7 +38,7 @@ public class ForgeMultipart {
     private static Method methodCreateFromNBT;
 
     public static void init() {
-        enabled = Loader.isModLoaded("ForgeMultipart");
+        enabled = Mods.FORGE_MULTIPART;
         client = FMLCommonHandler.instance()
             .getSide()
             .isClient();
@@ -54,6 +56,13 @@ public class ForgeMultipart {
                 final Object instanceMultiPartRegistry$module$ = fieldMultiPartRegistry$module$
                     .get(classMultiPartRegistry$);
                 instancesTypeMap = (Map<String, Object>) field$typeMap.get(instanceMultiPartRegistry$module$);
+                instanceMultiPartRegistry = instanceMultiPartRegistry$module$;
+                methodLoadRegisteredPart = ReflectionHelper.findMethod(
+                    classMultiPartRegistry$,
+                    null,
+                    new String[] { "loadPart" },
+                    String.class,
+                    NBTTagCompound.class);
 
                 final Class<? super Object> classMicroMaterialRegistry = ReflectionHelper
                     .getClass(classLoader, "codechicken.microblock.MicroMaterialRegistry");
@@ -130,9 +139,7 @@ public class ForgeMultipart {
         for (int i = 0; i < partList.tagCount(); i++) {
             final NBTTagCompound partTag = partList.getCompoundTagAt(i);
             final String partID = partTag.getString("id");
-            final int materialID = materialID(partTag.getString("material"));
-
-            final Object part = createPart(partID, client, materialID);
+            final Object part = createPart(partID, client, partTag);
             if (part != null) {
                 load(part, partTag);
                 parts.add(part);
@@ -173,7 +180,7 @@ public class ForgeMultipart {
         return (Integer) methodMaterialID.invoke(null, material);
     }
 
-    private static Object createPart(final String partID, final boolean client, final int materialID)
+    private static Object createPart(final String partID, final boolean client, final NBTTagCompound partTag)
         throws ReflectiveOperationException {
         final Option<Object> option = instancesTypeMap.get(partID);
         if (option.isEmpty()) {
@@ -181,7 +188,14 @@ public class ForgeMultipart {
             return null;
         }
 
-        return methodCreatePart.invoke(option.get(), client, materialID);
+        final Object factory = option.get();
+        if (methodCreatePart.getDeclaringClass()
+            .isInstance(factory)) {
+            return methodCreatePart.invoke(factory, client, materialID(partTag.getString("material")));
+        }
+
+        // Other multipart factories load their own NBT and can share a tile with microblocks.
+        return methodLoadRegisteredPart.invoke(instanceMultiPartRegistry, partID, partTag);
     }
 
     private static Object load(final Object part, final NBTTagCompound partTag) throws ReflectiveOperationException {

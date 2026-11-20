@@ -231,6 +231,7 @@ public final class Names {
         public static final String ICON = "Icon";
         public static final String BLOCKS = "Blocks";
         public static final String DATA = "Data";
+        public static final String DATA_HIGH = "SchematicaDataHigh";
         public static final String ADD_BLOCKS = "AddBlocks";
         public static final String ADD_BLOCKS_SCHEMATICA = "Add";
         public static final String WIDTH = "Width";

@@ -11,6 +11,7 @@ import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.IBlockAccess;
@@ -233,8 +234,9 @@ public final class MicroblockSupport {
 
         private Click find() {
             final Vec3 look = player.getLook(1);
-            final MovingObjectPosition visible = world.rayTraceBlocks(
-                eye.addVector(0, 0, 0),
+            final MovingObjectPosition visible = traceWithoutChangingBounds(
+                world,
+                eye,
                 eye.addVector(look.xCoord * reach, look.yCoord * reach, look.zCoord * reach));
             if (visible != null
                 && Math.abs(visible.blockX - x) + Math.abs(visible.blockY - y) + Math.abs(visible.blockZ - z)
@@ -372,7 +374,7 @@ public final class MicroblockSupport {
                     || predictPlacement(player, x, y, z, request, serverHit, expanding) == null) {
                     continue;
                 }
-                final MovingObjectPosition visible = world.rayTraceBlocks(eye.addVector(0, 0, 0), end);
+                final MovingObjectPosition visible = traceWithoutChangingBounds(world, eye, end);
                 if (visible != null && visible.blockX == bx
                     && visible.blockY == by
                     && visible.blockZ == bz
@@ -394,17 +396,72 @@ public final class MicroblockSupport {
         }
     }
 
-    private static Click withSavedBlockBounds(Block block, Supplier<Click> action) {
-        final float minX = (float) block.getBlockBoundsMinX();
-        final float minY = (float) block.getBlockBoundsMinY();
-        final float minZ = (float) block.getBlockBoundsMinZ();
-        final float maxX = (float) block.getBlockBoundsMaxX();
-        final float maxY = (float) block.getBlockBoundsMaxY();
-        final float maxZ = (float) block.getBlockBoundsMaxZ();
+    private static MovingObjectPosition traceWithoutChangingBounds(World world, Vec3 origin, Vec3 end) {
+        final Vec3 start = origin.addVector(0, 0, 0);
+        final int endX = MathHelper.floor_double(end.xCoord);
+        final int endY = MathHelper.floor_double(end.yCoord);
+        final int endZ = MathHelper.floor_double(end.zCoord);
+        int x = MathHelper.floor_double(start.xCoord);
+        int y = MathHelper.floor_double(start.yCoord);
+        int z = MathHelper.floor_double(start.zCoord);
+
+        // Match vanilla's voxel order, including its Z/Y/X tie order at grid boundaries.
+        for (int step = 0; step <= 201; step++) {
+            final Block block = world.getBlock(x, y, z);
+            if (block.canCollideCheck(world.getBlockMetadata(x, y, z), false)) {
+                final int bx = x;
+                final int by = y;
+                final int bz = z;
+                final MovingObjectPosition hit = withSavedBlockBounds(
+                    block,
+                    () -> block.collisionRayTrace(world, bx, by, bz, start, end));
+                if (hit != null) {
+                    return hit;
+                }
+            }
+            if (x == endX && y == endY && z == endZ) {
+                return null;
+            }
+
+            final double boundaryX = x + (endX > x ? 1 : 0);
+            final double boundaryY = y + (endY > y ? 1 : 0);
+            final double boundaryZ = z + (endZ > z ? 1 : 0);
+            final double dx = end.xCoord - start.xCoord;
+            final double dy = end.yCoord - start.yCoord;
+            final double dz = end.zCoord - start.zCoord;
+            final double tx = x == endX ? Double.POSITIVE_INFINITY : (boundaryX - start.xCoord) / dx;
+            final double ty = y == endY ? Double.POSITIVE_INFINITY : (boundaryY - start.yCoord) / dy;
+            final double tz = z == endZ ? Double.POSITIVE_INFINITY : (boundaryZ - start.zCoord) / dz;
+            final boolean crossX = tx < ty && tx < tz;
+            final boolean crossY = !crossX && ty < tz;
+            final boolean crossZ = !crossX && !crossY;
+            final double t = crossX ? tx : crossY ? ty : tz;
+            start.xCoord = crossX ? boundaryX : start.xCoord + dx * t;
+            start.yCoord = crossY ? boundaryY : start.yCoord + dy * t;
+            start.zCoord = crossZ ? boundaryZ : start.zCoord + dz * t;
+            x = MathHelper.floor_double(start.xCoord) - (crossX && dx < 0 ? 1 : 0);
+            y = MathHelper.floor_double(start.yCoord) - (crossY && dy < 0 ? 1 : 0);
+            z = MathHelper.floor_double(start.zCoord) - (crossZ && dz < 0 ? 1 : 0);
+        }
+        return null;
+    }
+
+    private static <T> T withSavedBlockBounds(Block block, Supplier<T> action) {
+        final double minX = block.minX;
+        final double minY = block.minY;
+        final double minZ = block.minZ;
+        final double maxX = block.maxX;
+        final double maxY = block.maxY;
+        final double maxZ = block.maxZ;
         try {
             return action.get();
         } finally {
-            block.setBlockBounds(minX, minY, minZ, maxX, maxY, maxZ);
+            block.minX = minX;
+            block.minY = minY;
+            block.minZ = minZ;
+            block.maxX = maxX;
+            block.maxY = maxY;
+            block.maxZ = maxZ;
         }
     }
 

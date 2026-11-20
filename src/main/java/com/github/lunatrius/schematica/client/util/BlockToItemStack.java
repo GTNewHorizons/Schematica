@@ -34,12 +34,15 @@ public class BlockToItemStack {
                 player);
             if (itemStack != null && itemStack.getItem() != null) {
                 // Ignore facing damage when a non-subtyped item places the same metadata as its default stack.
-                if (itemStack.getItem() instanceof ItemBlock && !itemStack.getHasSubtypes()
+                if (itemStack.getItemDamage() != 0 && itemStack.getItem() instanceof ItemBlock
+                    && !itemStack.getHasSubtypes()
                     && itemStack.getItem()
                         .getMetadata(itemStack.getItemDamage())
                         == itemStack.getItem()
                             .getMetadata(0)) {
-                    itemStack.setItemDamage(0);
+                    final ItemStack normalized = itemStack.copy();
+                    normalized.setItemDamage(0);
+                    return normalized;
                 }
                 return itemStack;
             }

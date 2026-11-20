@@ -22,6 +22,7 @@ import org.lwjgl.opengl.GL20;
 
 import com.github.lunatrius.core.util.vector.Vector3d;
 import com.github.lunatrius.core.util.vector.Vector3f;
+import com.github.lunatrius.schematica.client.compat.ArchitectureCraftSupport;
 import com.github.lunatrius.schematica.client.compat.CarpentersBlocksSupport;
 import com.github.lunatrius.schematica.client.compat.MicroblockSupport;
 import com.github.lunatrius.schematica.client.renderer.shader.ShaderProgram;
@@ -249,7 +250,6 @@ public class RendererSchematicChunk {
         IBlockAccess mcWorld = this.minecraft.theWorld;
         RenderBlocks renderBlocks = RendererSchematicGlobal.INSTANCE.renderBlocks;
         final boolean renderMicroblocks = renderPass < 2 && Mods.FORGE_MICROBLOCK;
-        final boolean highlightCarpenters = renderPass == 2 && Mods.CARPENTERS_BLOCKS;
 
         int x, y, z, wx, wy, wz;
         int sides;
@@ -349,26 +349,16 @@ public class RendererSchematicChunk {
                                     if (ConfigurationHandler.drawLines) {
                                         RenderHelper.drawCuboidOutline(zero, size, sides, 1.0f, 0.0f, 0.0f, 0.25f);
                                     }
-                                } else if (highlightCarpenters && CarpentersBlocksSupport.isCoverable(block)
-                                    ? !CarpentersBlocksSupport.matches(
-                                        block,
-                                        this.schematic.getTileEntity(x, y, z),
-                                        mcWorld.getTileEntity(wx, wy, wz))
-                                    : !BlockToItemStack.matchesMetadata(
-                                        block,
-                                        mcWorld.getBlockMetadata(wx, wy, wz),
-                                        this.schematic.getBlockMetadata(x, y, z))) {
-                                            zero.set(x, y, z);
-                                            size.set(x + 1, y + 1, z + 1);
-                                            if (ConfigurationHandler.drawQuads) {
-                                                RenderHelper
-                                                    .drawCuboidSurface(zero, size, sides, 0.75f, 0.35f, 0.0f, 0.25f);
-                                            }
-                                            if (ConfigurationHandler.drawLines) {
-                                                RenderHelper
-                                                    .drawCuboidOutline(zero, size, sides, 0.75f, 0.35f, 0.0f, 0.25f);
-                                            }
-                                        }
+                                } else if (!matchesBlockState(block, mcWorld, x, y, z, wx, wy, wz)) {
+                                    zero.set(x, y, z);
+                                    size.set(x + 1, y + 1, z + 1);
+                                    if (ConfigurationHandler.drawQuads) {
+                                        RenderHelper.drawCuboidSurface(zero, size, sides, 0.75f, 0.35f, 0.0f, 0.25f);
+                                    }
+                                    if (ConfigurationHandler.drawLines) {
+                                        RenderHelper.drawCuboidOutline(zero, size, sides, 0.75f, 0.35f, 0.0f, 0.25f);
+                                    }
+                                }
                             }
                         } else if (!isAirBlock) {
                             if (ConfigurationHandler.highlight && renderPass == 2) {
@@ -396,6 +386,18 @@ public class RendererSchematicChunk {
         Tessellator.instance.draw();
 
         this.minecraft.gameSettings.ambientOcclusion = ambientOcclusion;
+    }
+
+    private boolean matchesBlockState(Block block, IBlockAccess world, int x, int y, int z, int wx, int wy, int wz) {
+        if (Mods.CARPENTERS_BLOCKS && CarpentersBlocksSupport.isCoverable(block)) {
+            return CarpentersBlocksSupport
+                .matches(block, this.schematic.getTileEntity(x, y, z), world.getTileEntity(wx, wy, wz));
+        }
+        return BlockToItemStack
+            .matchesMetadata(block, world.getBlockMetadata(wx, wy, wz), this.schematic.getBlockMetadata(x, y, z))
+            && (!Mods.ARCHITECTURE_CRAFT || !ArchitectureCraftSupport.isShapeBlock(block)
+                || ArchitectureCraftSupport
+                    .matches(world.getTileEntity(wx, wy, wz), this.schematic.getTileEntity(x, y, z), block));
     }
 
     public void renderTileEntities(int renderPass) {

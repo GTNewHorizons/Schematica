@@ -10,11 +10,11 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import gcewing.architecture.ArchitectureCraft;
 import gcewing.architecture.common.block.BlockShape;
 import gcewing.architecture.common.shape.Shape;
 import gcewing.architecture.common.shape.ShapeItem;
 import gcewing.architecture.common.shape.ShapeSymmetry;
+import gcewing.architecture.common.tile.TileArchitecture;
 import gcewing.architecture.common.tile.TileShape;
 import gcewing.architecture.compat.BlockCompatUtils;
 import gcewing.architecture.compat.BlockPos;
@@ -51,13 +51,19 @@ public final class ArchitectureCraftSupport {
 
     public static ItemStack getItem(TileEntity tile, Block block) {
         if (tile instanceof TileShape shape && shape.shape != null) {
-            return shape.shape.kind
-                .newStack(shape.shape, shape.baseBlockState, 1, block == ArchitectureCraft.content.blockShapeSE);
+            return TileArchitecture.blockStackWithTileEntity(block, 1, shape);
         }
         return null;
     }
 
     public static boolean itemsMatch(ItemStack stack, ItemStack target) {
+        return sameShape(stack, target) && stack.getTagCompound()
+            .getInteger("Disconnected")
+            == target.getTagCompound()
+                .getInteger("Disconnected");
+    }
+
+    private static boolean sameShape(ItemStack stack, ItemStack target) {
         final NBTTagCompound tag = stack.getTagCompound();
         final NBTTagCompound expected = target.getTagCompound();
         return tag != null && expected != null
@@ -76,7 +82,7 @@ public final class ArchitectureCraftSupport {
         final ItemStack actualItem = getItem(actual, block);
         final ItemStack expectedItem = getItem(expected, block);
         return actualItem != null && expectedItem != null
-            && itemsMatch(actualItem, expectedItem)
+            && sameShape(actualItem, expectedItem)
             && sameOrientation(actual, expected);
     }
 

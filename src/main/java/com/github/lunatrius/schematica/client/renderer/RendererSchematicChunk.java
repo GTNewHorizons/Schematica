@@ -397,7 +397,7 @@ public class RendererSchematicChunk {
             .matchesMetadata(block, world.getBlockMetadata(wx, wy, wz), this.schematic.getBlockMetadata(x, y, z))
             && (!Mods.ARCHITECTURE_CRAFT || !ArchitectureCraftSupport.isShapeBlock(block)
                 || ArchitectureCraftSupport
-                    .matches(world.getTileEntity(wx, wy, wz), this.schematic.getTileEntity(x, y, z), block));
+                    .matchesPreview(world.getTileEntity(wx, wy, wz), this.schematic.getTileEntity(x, y, z), block));
     }
 
     public void renderTileEntities(int renderPass) {

@@ -18,6 +18,7 @@ import gcewing.architecture.common.tile.TileArchitecture;
 import gcewing.architecture.common.tile.TileShape;
 import gcewing.architecture.compat.BlockCompatUtils;
 import gcewing.architecture.compat.BlockPos;
+import gcewing.architecture.compat.IBlockState;
 import gcewing.architecture.compat.Trans3;
 import gcewing.architecture.compat.Vector3;
 import gcewing.architecture.util.Utils;
@@ -84,6 +85,19 @@ public final class ArchitectureCraftSupport {
         return actualItem != null && expectedItem != null
             && sameShape(actualItem, expectedItem)
             && sameOrientation(actual, expected);
+    }
+
+    public static boolean matchesPreview(TileEntity placed, TileEntity target, Block block) {
+        return placed instanceof TileShape actual && target instanceof TileShape expected
+            && matches(actual, expected, block)
+            && actual.disabledConnections == expected.disabledConnections
+            && sameMaterial(actual.secondaryBlockState, expected.secondaryBlockState);
+    }
+
+    private static boolean sameMaterial(IBlockState actual, IBlockState expected) {
+        return actual == expected || (actual != null && expected != null
+            && actual.getBlock() == expected.getBlock()
+            && BlockCompatUtils.getMetaFromBlockState(actual) == BlockCompatUtils.getMetaFromBlockState(expected));
     }
 
     private static boolean sameOrientation(TileShape actual, TileShape expected) {

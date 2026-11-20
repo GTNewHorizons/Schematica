@@ -64,6 +64,10 @@ public class BlockList {
                             world.getTileEntity(x, y, z),
                             block == mcBlock ? mcWorld.getTileEntity(wx, wy, wz) : null,
                             (material, placed) -> addMaterial(blockList, material, 1, placed));
+                        if (CarpentersBlocksSupport.isGarageDoor(block)
+                            && CarpentersBlocksSupport.isGarageDoorPanel(world.getTileEntity(x, y, z))) {
+                            continue;
+                        }
                     }
                     final ItemStack stack = BlockToItemStack.getItemStack(player, block, world, x, y, z);
 

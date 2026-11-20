@@ -50,6 +50,10 @@ public final class CarpentersBlocksSupport {
         return block instanceof BlockCarpentersGarageDoor;
     }
 
+    public static boolean isGarageDoorPanel(TileEntity tile) {
+        return tile instanceof TEBase carpenter && !GarageDoor.INSTANCE.isHost(carpenter);
+    }
+
     public static boolean canConfigure(Block block, TileEntity tile, EntityPlayer player) {
         // A rejected configuration click can open a safe. A remote client cannot check operator status.
         return tile instanceof TEBase carpenter && (!(block instanceof BlockCarpentersSafe)

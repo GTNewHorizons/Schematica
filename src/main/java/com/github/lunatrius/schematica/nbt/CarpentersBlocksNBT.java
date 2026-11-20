@@ -1,6 +1,7 @@
 package com.github.lunatrius.schematica.nbt;
 
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.common.util.Constants;
@@ -21,10 +22,19 @@ public final class CarpentersBlocksNBT {
             final NBTTagCompound attribute = attributes.getCompoundTagAt(i);
             final String name = attribute.getString(ITEM_REGISTRY_NAME);
             if (!name.isEmpty()) {
-                // Carpenter's Blocks uses the registry name only when the numeric ID fails to resolve.
                 final Item item = GameData.getItemRegistry()
                     .getObject(name);
-                attribute.setShort("id", (short) (item == null ? 0 : Item.getIdFromItem(item)));
+                // EndlessIDs can prefer idExt over the vanilla id. Copy the current stack's ID encoding only.
+                attribute.removeTag("idExt");
+                if (item == null) {
+                    attribute.setShort("id", (short) 0);
+                    continue;
+                }
+                final NBTTagCompound stack = new ItemStack(item).writeToNBT(new NBTTagCompound());
+                attribute.setTag("id", stack.getTag("id"));
+                if (stack.hasKey("idExt")) {
+                    attribute.setTag("idExt", stack.getTag("idExt"));
+                }
             }
         }
     }

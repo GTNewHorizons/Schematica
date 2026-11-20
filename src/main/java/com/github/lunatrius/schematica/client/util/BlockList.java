@@ -59,13 +59,13 @@ public class BlockList {
                     }
                     final Block mcBlock = mcWorld.getBlock(wx, wy, wz);
                     final boolean carpenter = Mods.CARPENTERS_BLOCKS && CarpentersBlocksSupport.isCoverable(block);
+                    final boolean garageDoor = carpenter && CarpentersBlocksSupport.isGarageDoor(block);
                     if (carpenter) {
                         CarpentersBlocksSupport.addMaterials(
                             world.getTileEntity(x, y, z),
                             block == mcBlock ? mcWorld.getTileEntity(wx, wy, wz) : null,
                             (material, placed) -> addMaterial(blockList, material, 1, placed));
-                        if (CarpentersBlocksSupport.isGarageDoor(block)
-                            && CarpentersBlocksSupport.isGarageDoorPanel(world.getTileEntity(x, y, z))) {
+                        if (garageDoor && !CarpentersBlocksSupport.isGarageDoorHost(world.getTileEntity(x, y, z))) {
                             continue;
                         }
                     }
@@ -80,7 +80,8 @@ public class BlockList {
                         .matchesMetadata(block, mcWorld.getBlockMetadata(wx, wy, wz), world.getBlockMetadata(x, y, z)))
                             ? BlockToItemStack.getItemStack(player, mcBlock, mcWorld, wx, wy, wz)
                             : null;
-                    final boolean complete = placed != null && BlockToItemStack.matches(placed, stack);
+                    final boolean complete = placed != null && BlockToItemStack.matches(placed, stack)
+                        && (!garageDoor || CarpentersBlocksSupport.isGarageDoorHost(mcWorld.getTileEntity(wx, wy, wz)));
                     addMaterial(blockList, stack, 1, complete);
                     if (block instanceof BlockSlab && block.isOpaqueCube() && stack.getItem() instanceof ItemSlab) {
                         addMaterial(

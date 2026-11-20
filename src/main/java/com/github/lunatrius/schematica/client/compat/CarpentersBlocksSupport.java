@@ -49,8 +49,8 @@ public final class CarpentersBlocksSupport {
         return block instanceof BlockCarpentersGarageDoor;
     }
 
-    public static boolean isGarageDoorPanel(TileEntity tile) {
-        return tile instanceof TEBase carpenter && !GarageDoor.INSTANCE.isHost(carpenter);
+    public static boolean isGarageDoorHost(TileEntity tile) {
+        return tile instanceof TEBase carpenter && GarageDoor.INSTANCE.isHost(carpenter);
     }
 
     public static boolean canConfigure(TileEntity tile, EntityPlayer player) {
@@ -132,7 +132,8 @@ public final class CarpentersBlocksSupport {
 
     private static boolean matchesShape(Block block, TEBase expected, TEBase actual) {
         if (isGarageDoor(block)) {
-            return GarageDoor.INSTANCE.getDirection(actual) == GarageDoor.INSTANCE.getDirection(expected);
+            return GarageDoor.INSTANCE.getDirection(actual) == GarageDoor.INSTANCE.getDirection(expected)
+                && GarageDoor.INSTANCE.isHost(actual) == GarageDoor.INSTANCE.isHost(expected);
         }
         return !(block instanceof BlockCarpentersBlock || block instanceof BlockCarpentersSlope || isStairs(block))
             || actual.getData() == expected.getData();

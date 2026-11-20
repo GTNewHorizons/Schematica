@@ -80,4 +80,10 @@ public class BlockToItemStack {
             .getName()
             .equals("gregtech.common.blocks.GTBlockOre") && block.damageDropped(actual) == block.damageDropped(saved));
     }
+
+    public static boolean matchesHalfSlab(World world, int x, int y, int z, ItemStack slab) {
+        final Block block = world.getBlock(x, y, z);
+        return block == Block.getBlockFromItem(slab.getItem()) && !block.isOpaqueCube()
+            && (world.getBlockMetadata(x, y, z) & 7) == slab.getItemDamage();
+    }
 }

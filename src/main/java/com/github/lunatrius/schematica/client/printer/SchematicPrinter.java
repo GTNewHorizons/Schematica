@@ -186,7 +186,7 @@ public class SchematicPrinter {
             && !placedBlock.isOpaqueCube()) {
             final ItemStack slab = BlockToItemStack.getItemStack(player, block, this.schematic, x, y, z);
             if (slab != null && slab.getItem() instanceof ItemSlab
-                && isMatchingHalfSlab(world, worldX, worldY, worldZ, slab)) {
+                && BlockToItemStack.matchesHalfSlab(world, worldX, worldY, worldZ, slab)) {
                 if (interaction.selectItem(slab)
                     && mergeSlab(interaction, worldX, worldY, worldZ, player.getHeldItem())) {
                     this.retryDelay[x][y][z] = (byte) ConfigurationHandler.timeout;
@@ -288,8 +288,8 @@ public class SchematicPrinter {
                     : data.getValidDirections(ForgeDirection.VALID_DIRECTIONS, metadata);
             for (ForgeDirection side : valid) {
                 // ItemSlab checks the block across the clicked face before placing into the clicked cell.
-                if (!slab
-                    || !isMatchingHalfSlab(world, x - side.offsetX, y - side.offsetY, z - side.offsetZ, itemStack)) {
+                if (!slab || !BlockToItemStack
+                    .matchesHalfSlab(world, x - side.offsetX, y - side.offsetY, z - side.offsetZ, itemStack)) {
                     direction = side;
                     break;
                 }
@@ -306,17 +306,11 @@ public class SchematicPrinter {
     }
 
     private boolean wouldMergeSupportingSlab(World world, int x, int y, int z, ForgeDirection support, ItemStack slab) {
-        if (support.offsetY == 0 || !isMatchingHalfSlab(world, x, y + support.offsetY, z, slab)) {
+        if (support.offsetY == 0 || !BlockToItemStack.matchesHalfSlab(world, x, y + support.offsetY, z, slab)) {
             return false;
         }
         final boolean top = (world.getBlockMetadata(x, y + support.offsetY, z) & 8) != 0;
         return top ? support == ForgeDirection.UP : support == ForgeDirection.DOWN;
-    }
-
-    private boolean isMatchingHalfSlab(World world, int x, int y, int z, ItemStack slab) {
-        final Block block = world.getBlock(x, y, z);
-        return block == Block.getBlockFromItem(slab.getItem()) && !block.isOpaqueCube()
-            && (world.getBlockMetadata(x, y, z) & 7) == slab.getItemDamage();
     }
 
     private boolean mergeSlab(PrinterInteraction interaction, int x, int y, int z, ItemStack slab) {
@@ -384,7 +378,7 @@ public class SchematicPrinter {
             boolean placed = interaction.place(itemStack, clickedX, clickedY, clickedZ, side, hit);
             for (int i = 0; placed && i < extraClicks; i++) {
                 placed = itemStack.getItem() instanceof ItemSlab
-                    ? isMatchingHalfSlab(interaction.world, x, y, z, itemStack)
+                    ? BlockToItemStack.matchesHalfSlab(interaction.world, x, y, z, itemStack)
                         && mergeSlab(interaction, x, y, z, itemStack)
                     : interaction.place(itemStack, clickedX, clickedY, clickedZ, side, hit);
             }

@@ -5,10 +5,12 @@ import java.util.List;
 
 import net.blay09.mods.cookingforblockheads.utils.DyeUtils;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockSlab;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
+import net.minecraft.item.ItemSlab;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 
@@ -74,7 +76,15 @@ public class BlockList {
                         .matchesMetadata(block, mcWorld.getBlockMetadata(wx, wy, wz), world.getBlockMetadata(x, y, z)))
                             ? BlockToItemStack.getItemStack(player, mcBlock, mcWorld, wx, wy, wz)
                             : null;
-                    addMaterial(blockList, stack, 1, placed != null && BlockToItemStack.matches(placed, stack));
+                    final boolean complete = placed != null && BlockToItemStack.matches(placed, stack);
+                    addMaterial(blockList, stack, 1, complete);
+                    if (block instanceof BlockSlab && block.isOpaqueCube() && stack.getItem() instanceof ItemSlab) {
+                        addMaterial(
+                            blockList,
+                            stack,
+                            1,
+                            complete || BlockToItemStack.matchesHalfSlab(mcWorld, wx, wy, wz, stack));
+                    }
                     if (Mods.ARCHITECTURE_CRAFT && ArchitectureCraftSupport.isShapeBlock(block)) {
                         final ItemStack secondary = ArchitectureCraftSupport
                             .getSecondaryItem(world.getTileEntity(x, y, z));

@@ -37,6 +37,7 @@ import com.github.lunatrius.schematica.handler.client.RenderTickHandler;
 import com.github.lunatrius.schematica.handler.client.TickHandler;
 import com.github.lunatrius.schematica.handler.client.WorldHandler;
 import com.github.lunatrius.schematica.reference.Constants;
+import com.github.lunatrius.schematica.reference.Mods;
 import com.github.lunatrius.schematica.reference.Reference;
 import com.github.lunatrius.schematica.util.Coordinates;
 import com.github.lunatrius.schematica.world.schematic.SchematicFormat;
@@ -47,7 +48,6 @@ import com.google.gson.reflect.TypeToken;
 import cpw.mods.fml.client.config.GuiConfigEntries;
 import cpw.mods.fml.client.registry.ClientRegistry;
 import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
@@ -343,7 +343,7 @@ public class ClientProxy extends CommonProxy {
     public void postInit(FMLPostInitializationEvent event) {
         super.postInit(event);
         try {
-            if (Loader.isModLoaded("lotr")) {
+            if (Mods.LOTR) {
                 Reference.logger.info("Lotr mod detected, creating proxy");
                 lotrProxy = Class.forName(Reference.LOTR_PROXY)
                     .asSubclass(ILOTRPresent.class)

@@ -3,7 +3,6 @@ package com.github.lunatrius.schematica.client.util;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.blay09.mods.cookingforblockheads.utils.DyeUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockSlab;
 import net.minecraft.client.multiplayer.WorldClient;
@@ -16,6 +15,7 @@ import net.minecraft.tileentity.TileEntity;
 
 import com.github.lunatrius.schematica.client.compat.ArchitectureCraftSupport;
 import com.github.lunatrius.schematica.client.compat.CarpentersBlocksSupport;
+import com.github.lunatrius.schematica.client.compat.CookingForBlockheadsSupport;
 import com.github.lunatrius.schematica.client.compat.MicroblockSupport;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
 import com.github.lunatrius.schematica.nbt.NBTHelper;
@@ -142,7 +142,8 @@ public class BlockList {
             }
         }
 
-        if (Mods.COOKING_FOR_BLOCKHEADS && !player.capabilities.isCreativeMode) {
+        if (Mods.COOKING_FOR_BLOCKHEADS && !player.capabilities.isCreativeMode
+            && CookingForBlockheadsSupport.SUPPORTS_DYE_SUBSTITUTES) {
             addKitchenDyeSubstitutes(blockList, player.inventory.mainInventory);
         }
         return blockList;
@@ -157,13 +158,13 @@ public class BlockList {
             int available = 0;
             for (ItemStack stack : inventory) {
                 if (stack != null && !BlockToItemStack.matches(stack, dye.itemStack)
-                    && DyeUtils.rawDyeDamageFromStack(stack) == damage) {
+                    && CookingForBlockheadsSupport.getDyeDamage(stack) == damage) {
                     available += stack.stackSize;
                 }
             }
             // Reserve dyes that a different row needs as exact ingredients before counting substitutes.
             for (WrappedItemStack material : materials) {
-                if (material != dye && DyeUtils.rawDyeDamageFromStack(material.itemStack) == damage) {
+                if (material != dye && CookingForBlockheadsSupport.getDyeDamage(material.itemStack) == damage) {
                     available -= Math.min(material.inventory, material.total - material.placed);
                 }
             }

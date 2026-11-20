@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.entity.EntityClientPlayerMP;
@@ -238,7 +239,10 @@ public final class MicroblockSupport {
             if (visible != null
                 && Math.abs(visible.blockX - x) + Math.abs(visible.blockY - y) + Math.abs(visible.blockZ - z)
                     <= (expanding ? 0 : 1)) {
-                final Click click = tryAim(visible.blockX, visible.blockY, visible.blockZ, visible.sideHit);
+                final Block block = world.getBlock(visible.blockX, visible.blockY, visible.blockZ);
+                final Click click = withSavedBlockBounds(
+                    block,
+                    () -> tryAim(visible.blockX, visible.blockY, visible.blockZ, visible.sideHit));
                 if (click != null) {
                     return click;
                 }
@@ -266,6 +270,10 @@ public final class MicroblockSupport {
             if (world.isAirBlock(bx, by, bz) || !canClick.test(block)) {
                 return null;
             }
+            return withSavedBlockBounds(block, () -> tryBlockFaces(block, bx, by, bz, face));
+        }
+
+        private Click tryBlockFaces(Block block, int bx, int by, int bz, ForgeDirection face) {
             if (world.getTileEntity(bx, by, bz) instanceof TileMultipart multipart) {
                 final Iterator<TMultiPart> parts = multipart.partList()
                     .iterator();
@@ -383,6 +391,20 @@ public final class MicroblockSupport {
                 return null;
             }
             return null;
+        }
+    }
+
+    private static Click withSavedBlockBounds(Block block, Supplier<Click> action) {
+        final float minX = (float) block.getBlockBoundsMinX();
+        final float minY = (float) block.getBlockBoundsMinY();
+        final float minZ = (float) block.getBlockBoundsMinZ();
+        final float maxX = (float) block.getBlockBoundsMaxX();
+        final float maxY = (float) block.getBlockBoundsMaxY();
+        final float maxZ = (float) block.getBlockBoundsMaxZ();
+        try {
+            return action.get();
+        } finally {
+            block.setBlockBounds(minX, minY, minZ, maxX, maxY, maxZ);
         }
     }
 

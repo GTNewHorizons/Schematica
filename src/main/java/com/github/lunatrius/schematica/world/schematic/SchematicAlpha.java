@@ -190,6 +190,9 @@ public class SchematicAlpha extends SchematicFormat {
 
     @Override
     public boolean writeToNBT(NBTTagCompound tagCompound, ISchematic schematic, World backupWorld) {
+        tagCompound.removeTag(Names.NBT.DATA_HIGH);
+        tagCompound.removeTag(Names.NBT.ADD_BLOCKS);
+        tagCompound.removeTag(Names.NBT.ADD_BLOCKS_SCHEMATICA);
         if (ConfigurationHandler.useSchematicplusFormat) {
             NBTTagCompound tagCompoundIcon = new NBTTagCompound();
             ItemStack icon = schematic.getIcon();

@@ -32,6 +32,7 @@ public class ForgeMultipart {
     private static Method methodLoadRegisteredPart;
     private static Method methodLoad;
     private static Method methodOnPartChanged;
+    private static Class<?> microblockPart;
     private static Object instanceMultipartGenerator$;
     private static Method methodGenerateCompositeTile;
     private static Method methodLoadParts;
@@ -71,6 +72,7 @@ public class ForgeMultipart {
 
                 final Class<? super Object> classMicroblockClass = ReflectionHelper
                     .getClass(classLoader, "codechicken.microblock.MicroblockClass");
+                microblockPart = ReflectionHelper.getClass(classLoader, "codechicken.microblock.Microblock");
                 methodCreatePart = ReflectionHelper
                     .findMethod(classMicroblockClass, null, new String[] { "create" }, boolean.class, int.class);
 
@@ -160,7 +162,10 @@ public class ForgeMultipart {
         loadParts(tileEntity, parts);
 
         for (Object part : parts) {
-            onPartChanged(part, part);
+            // Microblocks recalculate render bounds here. Other parts may require an attached world.
+            if (microblockPart.isInstance(part)) {
+                onPartChanged(part, part);
+            }
         }
 
         return tileEntity;

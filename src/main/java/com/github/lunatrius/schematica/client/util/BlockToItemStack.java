@@ -102,8 +102,7 @@ public class BlockToItemStack {
         if (stack.getItem() != target.getItem()) {
             return false;
         }
-        if ((stack.hasTagCompound() || target.hasTagCompound())
-            && target.getItem() == GameRegistry.findItem("etfuturum", "banner")) {
+        if ((stack.hasTagCompound() || target.hasTagCompound()) && isBanner(target)) {
             return matchesBanner(stack, target);
         }
         if (stack.getItemDamage() != target.getItemDamage()) {
@@ -128,6 +127,10 @@ public class BlockToItemStack {
         // Ordinary block picks can omit per-item data from stock, such as a dropped machine's configuration.
         return ItemStack.areItemStackTagsEqual(stack, target) || (hasOnlyCosmeticTags(target)
             && (hasOnlyCosmeticTags(stack) || (blockStock && target.getItem() instanceof ItemBlock)));
+    }
+
+    static boolean isBanner(ItemStack stack) {
+        return stack.getItem() == GameRegistry.findItem("etfuturum", "banner");
     }
 
     private static boolean matchesBanner(ItemStack stack, ItemStack target) {

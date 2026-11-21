@@ -256,6 +256,14 @@ public class BlockList {
             if (Mods.ENDER_IO && EnderIOSlabSupport.isPaintedSlab(Block.getBlockFromItem(this.itemStack.getItem()))) {
                 return name + " (" + EnderIOSlabSupport.getPaintName(this.itemStack) + ")";
             }
+            if (this.itemStack.hasTagCompound() && BlockToItemStack.isBanner(this.itemStack)) {
+                final List<String> patterns = new ArrayList<>();
+                this.itemStack.getItem()
+                    .addInformation(this.itemStack, null, patterns, false);
+                if (!patterns.isEmpty()) {
+                    return name + " (" + String.join(", ", patterns) + ")";
+                }
+            }
             return name;
         }
 

@@ -86,6 +86,10 @@ public class SchematicWorld extends World {
             return Blocks.air;
         }
 
+        return getBlockIncludingHiddenLayers(x, y, z);
+    }
+
+    public Block getBlockIncludingHiddenLayers(int x, int y, int z) {
         return this.schematic.getBlock(x, y, z);
     }
 

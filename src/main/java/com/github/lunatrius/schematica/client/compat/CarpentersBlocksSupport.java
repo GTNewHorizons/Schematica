@@ -160,7 +160,7 @@ public final class CarpentersBlocksSupport {
         int worldY = wy - 1;
         while (worldY >= 0 && world.getBlock(wx, worldY, wz)
             .isReplaceable(world, wx, worldY, wz)) {
-            if (schematic.getBlock(x, panelY, z) != block
+            if (schematic.getBlockIncludingHiddenLayers(x, panelY, z) != block
                 || !(schematic.getTileEntity(x, panelY, z) instanceof TEBase panel)
                 || door.isHost(panel)
                 || door.getDirection(panel) != direction) {
@@ -169,7 +169,7 @@ public final class CarpentersBlocksSupport {
             panelY--;
             worldY--;
         }
-        if (schematic.getBlock(x, panelY, z) == block && (world.getBlock(wx, worldY, wz) != block
+        if (schematic.getBlockIncludingHiddenLayers(x, panelY, z) == block && (world.getBlock(wx, worldY, wz) != block
             || !(world.getTileEntity(wx, worldY, wz) instanceof TEBase panel)
             || door.getDirection(panel) != direction)) {
             return null;

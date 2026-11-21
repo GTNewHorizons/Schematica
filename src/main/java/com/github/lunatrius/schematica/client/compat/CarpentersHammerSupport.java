@@ -205,7 +205,8 @@ public final class CarpentersHammerSupport {
             final int x = piece.xCoord - schematic.position.x;
             final int y = piece.yCoord - schematic.position.y;
             final int z = piece.zCoord - schematic.position.z;
-            if (schematic.getBlock(x, y, z) != block || !(schematic.getTileEntity(x, y, z) instanceof TEBase saved)
+            if (schematic.getBlockIncludingHiddenLayers(x, y, z) != block
+                || !(schematic.getTileEntity(x, y, z) instanceof TEBase saved)
                 || settings.findClick(expected, saved) != null) {
                 return null;
             }

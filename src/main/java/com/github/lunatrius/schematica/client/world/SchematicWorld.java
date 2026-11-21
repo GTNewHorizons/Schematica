@@ -236,6 +236,24 @@ public class SchematicWorld extends World {
     }
 
     public void flip(ForgeDirection direction) {
+        transformAllLayers(() -> flipSchematic(direction));
+    }
+
+    public void rotate(ForgeDirection direction) {
+        transformAllLayers(() -> rotateSchematic(direction));
+    }
+
+    private void transformAllLayers(Runnable transform) {
+        final boolean wasRenderingLayer = this.isRenderingLayer;
+        this.isRenderingLayer = false;
+        try {
+            transform.run();
+        } finally {
+            this.isRenderingLayer = wasRenderingLayer;
+        }
+    }
+
+    private void flipSchematic(ForgeDirection direction) {
         final ItemStack icon = this.schematic.getIcon();
         final int width = this.schematic.getWidth();
         final int height = this.schematic.getHeight();
@@ -320,7 +338,7 @@ public class SchematicWorld extends World {
         refreshChests();
     }
 
-    public void rotate(ForgeDirection direction) {
+    private void rotateSchematic(ForgeDirection direction) {
         final ItemStack icon = this.schematic.getIcon();
         final int width = this.schematic.getWidth();
         final int height = this.schematic.getHeight();

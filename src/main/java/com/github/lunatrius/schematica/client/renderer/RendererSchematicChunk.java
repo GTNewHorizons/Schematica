@@ -395,6 +395,7 @@ public class RendererSchematicChunk {
         }
         return BlockToItemStack
             .matchesMetadata(block, world.getBlockMetadata(wx, wy, wz), this.schematic.getBlockMetadata(x, y, z))
+            && BlockToItemStack.matchesPaint(block, world, wx, wy, wz, this.schematic, x, y, z)
             && (!Mods.ARCHITECTURE_CRAFT || !ArchitectureCraftSupport.isShapeBlock(block)
                 || ArchitectureCraftSupport
                     .matchesPreview(world.getTileEntity(wx, wy, wz), this.schematic.getTileEntity(x, y, z), block));

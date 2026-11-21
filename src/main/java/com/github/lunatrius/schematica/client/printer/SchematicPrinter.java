@@ -185,6 +185,7 @@ public class SchematicPrinter {
             return false;
         }
         if (block == placedBlock && BlockToItemStack.matchesMetadata(block, placedMetadata, metadata)
+            && BlockToItemStack.matchesPaint(block, world, worldX, worldY, worldZ, this.schematic, x, y, z)
             && (!architectureShape || ArchitectureCraftSupport
                 .matches(world.getTileEntity(worldX, worldY, worldZ), architectureTile, block))) {
             return false;
@@ -195,7 +196,8 @@ public class SchematicPrinter {
             && !placedBlock.isOpaqueCube()) {
             final ItemStack slab = BlockToItemStack.getItemStack(player, block, this.schematic, x, y, z);
             if (slab != null && slab.getItem() instanceof ItemSlab
-                && BlockToItemStack.matchesHalfSlab(world, worldX, worldY, worldZ, slab)) {
+                && BlockToItemStack.matchesHalfSlab(world, worldX, worldY, worldZ, slab)
+                && BlockToItemStack.matchesPaint(block, world, worldX, worldY, worldZ, this.schematic, x, y, z)) {
                 if (interaction.selectItem(slab)
                     && mergeSlab(interaction, worldX, worldY, worldZ, player.getHeldItem())) {
                     this.retryDelay[x][y][z] = (byte) ConfigurationHandler.timeout;

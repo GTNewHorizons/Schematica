@@ -8,6 +8,8 @@ dependencies {
     compileOnly('com.github.GTNewHorizons:ArchitectureCraft:1.12.19:dev') { transitive = false }
     compileOnly('com.github.GTNewHorizons:CarpentersBlocks:3.7.3-GTNH:dev') { transitive = false }
     compileOnly('com.github.GTNewHorizons:CookingForBlockheads:1.4.14-GTNH:dev') { transitive = false }
+    compileOnly('com.github.GTNewHorizons:EnderIO:2.10.49:dev') { transitive = false }
+    compileOnly('com.github.GTNewHorizons:EnderCore:0.5.15:dev') { transitive = false }
     compileOnly('com.github.GTNewHorizons:Postea:1.2.7:dev') { transitive = false }
 
     // Optional mods and their dependencies for the compatibility test client.

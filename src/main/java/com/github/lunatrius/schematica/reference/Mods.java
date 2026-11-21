@@ -10,6 +10,7 @@ public final class Mods {
     public static final boolean ARCHITECTURE_CRAFT = Loader.isModLoaded("ArchitectureCraft");
     public static final boolean CARPENTERS_BLOCKS = Loader.isModLoaded("CarpentersBlocks");
     public static final boolean COOKING_FOR_BLOCKHEADS = Loader.isModLoaded(COOKING_FOR_BLOCKHEADS_ID);
+    public static final boolean ENDER_IO = Loader.isModLoaded("EnderIO");
     public static final boolean FORGE_MICROBLOCK = Loader.isModLoaded("ForgeMicroblock");
     public static final boolean FORGE_MULTIPART = Loader.isModLoaded("ForgeMultipart");
     public static final boolean GTNH = Loader.isModLoaded("dreamcraft");

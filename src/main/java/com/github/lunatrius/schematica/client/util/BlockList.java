@@ -88,7 +88,8 @@ public class BlockList {
                             blockList,
                             stack,
                             1,
-                            complete || BlockToItemStack.matchesHalfSlab(mcWorld, wx, wy, wz, stack));
+                            complete || (BlockToItemStack.matchesHalfSlab(mcWorld, wx, wy, wz, stack)
+                                && BlockToItemStack.matchesPaint(block, mcWorld, wx, wy, wz, world, x, y, z)));
                     }
                     if (Mods.ARCHITECTURE_CRAFT && ArchitectureCraftSupport.isShapeBlock(block)) {
                         final ItemStack secondary = ArchitectureCraftSupport

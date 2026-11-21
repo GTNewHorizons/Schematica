@@ -144,6 +144,7 @@ public final class Names {
                 public static final String DOWNLOAD_STARTED = "schematica.command.download.started";
                 public static final String DOWNLOAD_SUCCEEDED = "schematica.command.download.downloadSucceeded";
                 public static final String DOWNLOAD_FAILED = "schematica.command.download.downloadFail";
+                public static final String DOWNLOAD_REQUIRES_UPDATE = "schematica.command.download.requiresUpdate";
             }
 
             public static final String NAME = "schematicaDownload";

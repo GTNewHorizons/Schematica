@@ -18,7 +18,6 @@ import com.github.lunatrius.schematica.Schematica;
 import com.github.lunatrius.schematica.api.ISchematic;
 import com.github.lunatrius.schematica.handler.ConfigurationHandler;
 import com.github.lunatrius.schematica.handler.DownloadHandler;
-import com.github.lunatrius.schematica.network.transfer.SchematicTransfer;
 import com.github.lunatrius.schematica.reference.Names;
 import com.github.lunatrius.schematica.reference.Reference;
 import com.github.lunatrius.schematica.util.FileUtils;
@@ -86,7 +85,7 @@ public class CommandSchematicaDownload extends CommandSchematicaBase {
         final ISchematic schematic = SchematicFormat.readFromFile(directory, filename);
 
         if (schematic != null) {
-            DownloadHandler.INSTANCE.transferMap.put(player, new SchematicTransfer(schematic, filename));
+            DownloadHandler.INSTANCE.startDownload(player, schematic, filename);
             sender.addChatMessage(
                 new ChatComponentTranslation(Names.Command.Download.Message.DOWNLOAD_STARTED, filename));
         } else {

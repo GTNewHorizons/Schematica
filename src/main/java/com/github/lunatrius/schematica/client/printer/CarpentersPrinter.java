@@ -2,7 +2,9 @@ package com.github.lunatrius.schematica.client.printer;
 
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BooleanSupplier;
 
 import net.minecraft.block.Block;
@@ -25,19 +27,38 @@ final class CarpentersPrinter {
     private static final float[] SHAPE_HIT_OFFSETS = { 0.5f, 0.125f, 0.875f, 0.25f, 0.75f };
 
     private final Map<ChunkPosition, PendingClick> pendingClicks = new HashMap<>();
+    private final Set<ChunkPosition> deferredGarageHosts = new HashSet<>();
+    private WeakReference<World> garageWorld = new WeakReference<>(null);
     private PendingClick pendingGarageStock;
+    private ChunkPosition pendingGarageHost;
     private long currentPass;
 
     void reset() {
         this.pendingClicks.clear();
+        this.deferredGarageHosts.clear();
     }
 
     void beginPass(World world) {
         final long pass = ++this.currentPass;
         this.pendingClicks.values()
             .removeIf(click -> click.allowsNextClick(world, pass));
+        if (this.garageWorld.get() != world) {
+            this.deferredGarageHosts.clear();
+            this.garageWorld = new WeakReference<>(world);
+        }
         if (this.pendingGarageStock != null && this.pendingGarageStock.allowsNextClick(world, pass)) {
+            if (this.pendingGarageStock.world.get() == world && pass >= this.pendingGarageStock.retryPass) {
+                // Let the current scan try the other garage hosts before retrying this one.
+                this.deferredGarageHosts.add(this.pendingGarageHost);
+            }
             this.pendingGarageStock = null;
+            this.pendingGarageHost = null;
+        }
+    }
+
+    void finishPass() {
+        if (this.pendingGarageStock == null) {
+            this.deferredGarageHosts.clear();
         }
     }
 
@@ -185,7 +206,9 @@ final class CarpentersPrinter {
         float yaw) {
         final World world = interaction.world;
         final boolean consumesItem = !interaction.player.capabilities.isCreativeMode;
-        if ((consumesItem && this.pendingGarageStock != null) || PrinterInteraction.isBlacklisted(block, item)
+        final ChunkPosition host = new ChunkPosition(x, y, z);
+        if ((consumesItem && (this.pendingGarageStock != null || this.deferredGarageHosts.contains(host)))
+            || PrinterInteraction.isBlacklisted(block, item)
             || !PrinterInteraction.canClickForPlacement(world.getBlock(x, y + 1, z), item, true)
             || !interaction.selectItem(item)) {
             return false;
@@ -209,7 +232,7 @@ final class CarpentersPrinter {
                     Vec3.createVectorHelper(x + 0.5, y + 1, z + 0.5))));
         if (sent) {
             this.pendingClicks.put(
-                new ChunkPosition(x, y, z),
+                host,
                 new PendingClick(
                     world,
                     this.currentPass,
@@ -217,6 +240,7 @@ final class CarpentersPrinter {
             if (consumesItem) {
                 // A block update can arrive before the consumed item is removed from the selected slot.
                 final WeakReference<InventoryPlayer> inventoryRef = new WeakReference<>(inventory);
+                this.pendingGarageHost = host;
                 this.pendingGarageStock = new PendingClick(world, this.currentPass, () -> {
                     final InventoryPlayer current = inventoryRef.get();
                     final ItemStack stack = current == null ? null : current.getStackInSlot(slot);

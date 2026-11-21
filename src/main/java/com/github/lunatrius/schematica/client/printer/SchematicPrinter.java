@@ -126,6 +126,7 @@ public class SchematicPrinter {
                     }
                 }
             }
+            this.carpenters.finishPass();
             return true;
         } catch (Exception e) {
             Reference.logger.error("Could not place block!", e);

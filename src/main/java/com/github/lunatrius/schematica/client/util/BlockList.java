@@ -114,12 +114,16 @@ public class BlockList {
                                 && y > 0
                                 && world.getBlock(x, y - 1, z) == block
                                 && kitchenColor(world.getTileEntity(x, y - 1, z)) == color;
-                            if (color > 0 && color <= 15 && !pairedFridge) {
+                            if (color >= 0 && color <= 15 && !pairedFridge) {
                                 final boolean hasUpperFridge = "fridge".equals(name.name) && !world.isRenderingLayer
                                     && world.getBlock(x, y + 1, z) == block
                                     && kitchenColor(world.getTileEntity(x, y + 1, z)) == color;
                                 final boolean dyed = hasKitchenColor(mcWorld, block, wx, wy, wz, color)
                                     && (!hasUpperFridge || hasKitchenColor(mcWorld, block, wx, wy + 1, wz, color));
+                                if (color == 0 && !hasColoredKitchenBlock(mcWorld, block, wx, wy, wz)
+                                    && (!hasUpperFridge || !hasColoredKitchenBlock(mcWorld, block, wx, wy + 1, wz))) {
+                                    continue;
+                                }
                                 final WrappedItemStack dye = addMaterial(
                                     blockList,
                                     new ItemStack(Items.dye, 1, 15 - color),
@@ -188,6 +192,10 @@ public class BlockList {
 
     private boolean hasKitchenColor(WorldClient world, Block block, int x, int y, int z, int color) {
         return world.getBlock(x, y, z) == block && kitchenColor(world.getTileEntity(x, y, z)) == color;
+    }
+
+    private boolean hasColoredKitchenBlock(WorldClient world, Block block, int x, int y, int z) {
+        return world.getBlock(x, y, z) == block && kitchenColor(world.getTileEntity(x, y, z)) != 0;
     }
 
     private WrappedItemStack addMaterial(List<WrappedItemStack> blockList, ItemStack stack, int count, boolean placed) {

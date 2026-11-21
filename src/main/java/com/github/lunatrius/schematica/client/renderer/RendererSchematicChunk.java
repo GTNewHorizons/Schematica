@@ -154,7 +154,9 @@ public class RendererSchematicChunk {
                 final int previousPass = ForgeHooksClient.getWorldRenderPass();
                 try {
                     // Multipart uses Forge's chunk-building pass to choose the parts to render.
-                    ForgeHooksClient.worldRenderPass = pass;
+                    if (pass < 2) {
+                        ForgeHooksClient.worldRenderPass = pass;
+                    }
                     renderBlocks(pass, minX, minY, minZ, maxX, maxY, maxZ);
                 } finally {
                     ForgeHooksClient.worldRenderPass = previousPass;
@@ -371,7 +373,7 @@ public class RendererSchematicChunk {
                                 }
                             }
 
-                            if (block != null && block.canRenderInPass(renderPass)) {
+                            if (renderPass < 2 && block != null && block.canRenderInPass(renderPass)) {
                                 renderBlocks.renderBlockByRenderType(block, x, y, z);
                             }
                         }

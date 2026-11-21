@@ -31,6 +31,7 @@ import codechicken.microblock.ExpandingPlacement;
 import codechicken.microblock.ItemMicroPart;
 import codechicken.microblock.Microblock;
 import codechicken.microblock.MicroblockPlacement;
+import codechicken.multipart.BlockMultipart;
 import codechicken.multipart.TMultiPart;
 import codechicken.multipart.TileMultipart;
 import scala.collection.Iterator;
@@ -41,6 +42,10 @@ public final class MicroblockSupport {
     private static final double SERVER_SNEAK_EYE_OFFSET = 0.08;
 
     private MicroblockSupport() {}
+
+    public static boolean isMultipartBlock(Block block) {
+        return block instanceof BlockMultipart;
+    }
 
     public static boolean isMicroblockItem(ItemStack stack) {
         return stack.getItem() instanceof ItemMicroPart;

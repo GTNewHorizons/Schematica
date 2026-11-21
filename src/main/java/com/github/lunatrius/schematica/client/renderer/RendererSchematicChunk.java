@@ -306,8 +306,7 @@ public class RendererSchematicChunk {
                             || ConfigurationHandler.isExtraAirBlock(mcBlock);
 
                         if (!isMcAirBlock) {
-                            if (renderMicroblocks && block == mcBlock
-                                && block.hasTileEntity(this.schematic.getBlockMetadata(x, y, z))) {
+                            if (renderMicroblocks && block == mcBlock && MicroblockSupport.isMultipartBlock(block)) {
                                 MicroblockSupport.renderMissingParts(
                                     this.schematic,
                                     mcWorld.getTileEntity(wx, wy, wz),

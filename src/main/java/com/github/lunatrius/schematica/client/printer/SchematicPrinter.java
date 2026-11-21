@@ -156,7 +156,7 @@ public class SchematicPrinter {
         final int metadata = this.schematic.getBlockMetadata(x, y, z);
         final int placedMetadata = world.getBlockMetadata(worldX, worldY, worldZ);
 
-        if (block.hasTileEntity(metadata) && Mods.FORGE_MICROBLOCK) {
+        if (Mods.FORGE_MICROBLOCK && MicroblockSupport.isMultipartBlock(block)) {
             final TileEntity tile = this.schematic.getTileEntity(x, y, z);
             if (MicroblockSupport.hasMicroblocks(tile)) {
                 return this.microblocks.place(interaction, tile, x, y, z, worldX, worldY, worldZ)

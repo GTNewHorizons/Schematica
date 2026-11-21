@@ -51,7 +51,7 @@ public class BlockList {
                     final int wx = world.position.x + x;
                     final int wy = world.position.y + y;
                     final int wz = world.position.z + z;
-                    if (Mods.FORGE_MICROBLOCK && block.hasTileEntity(world.getBlockMetadata(x, y, z))
+                    if (Mods.FORGE_MICROBLOCK && MicroblockSupport.isMultipartBlock(block)
                         && MicroblockSupport.addMaterials(
                             world.getTileEntity(x, y, z),
                             mcWorld.getTileEntity(wx, wy, wz),

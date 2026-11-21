@@ -82,7 +82,6 @@ public class SchematicPrinter {
     }
 
     public void refresh() {
-        this.microblocks.reset();
         if (this.schematic != null) {
             this.retryDelay = new byte[this.schematic.getWidth()][this.schematic.getHeight()][this.schematic
                 .getLength()];
@@ -95,6 +94,7 @@ public class SchematicPrinter {
         final EntityClientPlayerMP player = this.minecraft.thePlayer;
         final World world = this.minecraft.theWorld;
         final PrinterInteraction interaction = new PrinterInteraction(world, player, this.minecraft.playerController);
+        this.microblocks.beginPass(world);
         this.carpenters.beginPass(world);
         this.architectureCraft.beginPass(world);
 
@@ -145,7 +145,7 @@ public class SchematicPrinter {
         final int worldZ = this.schematic.position.z + z;
 
         if (this.carpenters.isWaiting(worldX, worldY, worldZ)
-            || this.microblocks.isWaiting(world, x, y, z, worldX, worldY, worldZ)) {
+            || this.microblocks.isWaiting(world, worldX, worldY, worldZ)) {
             return false;
         }
         if (this.retryDelay[x][y][z] > 0) {
@@ -161,7 +161,7 @@ public class SchematicPrinter {
         if (Mods.FORGE_MICROBLOCK && MicroblockSupport.isMultipartBlock(block)) {
             final TileEntity tile = this.schematic.getTileEntity(x, y, z);
             if (MicroblockSupport.hasMicroblocks(tile)) {
-                return this.microblocks.place(interaction, tile, x, y, z, worldX, worldY, worldZ)
+                return this.microblocks.place(interaction, tile, worldX, worldY, worldZ)
                     && !ConfigurationHandler.placeInstantly;
             }
         }

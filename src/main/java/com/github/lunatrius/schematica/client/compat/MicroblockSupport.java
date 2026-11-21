@@ -391,9 +391,6 @@ public final class MicroblockSupport {
                         player.rotationYaw,
                         player.rotationPitch,
                         player.isSneaking(),
-                        x,
-                        y,
-                        z,
                         placement.part());
                 }
                 return null;
@@ -561,24 +558,16 @@ public final class MicroblockSupport {
         public final float pitch;
         public final boolean sneaking;
 
-        private final int x, y, z;
         private final Microblock result;
 
-        private Click(ItemStack item, MovingObjectPosition hit, float yaw, float pitch, boolean sneaking, int x, int y,
-            int z, Microblock result) {
+        private Click(ItemStack item, MovingObjectPosition hit, float yaw, float pitch, boolean sneaking,
+            Microblock result) {
             this.item = item;
             this.hit = hit;
             this.yaw = yaw;
             this.pitch = pitch;
             this.sneaking = sneaking;
-            this.x = x;
-            this.y = y;
-            this.z = z;
             this.result = result;
-        }
-
-        public boolean targets(int x, int y, int z) {
-            return this.x == x && this.y == y && this.z == z;
         }
 
         public boolean isConfirmed(TileEntity tile) {

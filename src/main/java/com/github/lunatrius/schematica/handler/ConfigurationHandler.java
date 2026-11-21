@@ -58,6 +58,7 @@ public class ConfigurationHandler {
     public static final boolean SERVERSIDE_SCHEMATICS_ENABLED_DEFAULT = true;
 
     public static boolean showDebugInfo = SHOW_DEBUG_INFO_DEFAULT;
+    /** Loaded for old configs. Saving and loading no longer branch on this flag. */
     public static boolean useSchematicplusFormat = EXTENDED_ID_FORMAT_DEFAULT;
     public static boolean enableAlpha = ENABLE_ALPHA_DEFAULT;
     public static float alpha = (float) ALPHA_DEFAULT;
@@ -293,6 +294,7 @@ public class ConfigurationHandler {
             EXTENDED_ID_FORMAT_DEFAULT,
             Names.Config.EXTENDED_ID_FORMAT_DESC);
         propUseSchematicplusFormat.setLanguageKey(Names.Config.LANG_PREFIX + "." + Names.Config.EXTENDED_ID_FORMAT);
+        propUseSchematicplusFormat.setShowInGui(false);
         useSchematicplusFormat = propUseSchematicplusFormat.getBoolean(EXTENDED_ID_FORMAT_DEFAULT);
 
         propSortType = configuration

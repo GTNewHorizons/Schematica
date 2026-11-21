@@ -9,6 +9,7 @@ import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
+import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemSlab;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -83,14 +84,18 @@ public class BlockList {
                             : null;
                     final boolean complete = placed != null && BlockToItemStack.matches(placed, stack)
                         && (!garageDoor || CarpentersBlocksSupport.isGarageDoorHost(mcWorld.getTileEntity(wx, wy, wz)));
-                    addMaterial(blockList, stack, 1, complete).pickedBlock = true;
+                    final WrappedItemStack blockMaterial = addMaterial(blockList, stack, 1, complete);
+                    if (!complete) {
+                        blockMaterial.pickedBlocksNeeded++;
+                    }
                     if (block instanceof BlockSlab && block.isOpaqueCube() && stack.getItem() instanceof ItemSlab) {
-                        addMaterial(
-                            blockList,
-                            stack,
-                            1,
-                            complete || (BlockToItemStack.matchesHalfSlab(mcWorld, wx, wy, wz, stack)
-                                && BlockToItemStack.matchesPaint(block, mcWorld, wx, wy, wz, world, x, y, z)));
+                        if (complete || (BlockToItemStack.matchesHalfSlab(mcWorld, wx, wy, wz, stack)
+                            && BlockToItemStack.matchesPaint(block, mcWorld, wx, wy, wz, world, x, y, z))) {
+                            blockMaterial.placed++;
+                        } else {
+                            blockMaterial.pickedBlocksNeeded++;
+                        }
+                        blockMaterial.total++;
                     }
                     if (Mods.ARCHITECTURE_CRAFT && ArchitectureCraftSupport.isShapeBlock(block)) {
                         final ItemStack secondary = ArchitectureCraftSupport
@@ -145,20 +150,48 @@ public class BlockList {
                 wrappedItemStack.inventory = -1;
             } else {
                 for (ItemStack stack : player.inventory.mainInventory) {
-                    if (stack != null
-                        && (wrappedItemStack.pickedBlock ? BlockToItemStack.matchesBlockStock(stack, target)
-                            : BlockToItemStack.matches(stack, target))) {
+                    if (stack != null && BlockToItemStack.matches(stack, target)) {
                         wrappedItemStack.inventory += stack.stackSize;
                     }
                 }
             }
         }
 
-        if (Mods.COOKING_FOR_BLOCKHEADS && !player.capabilities.isCreativeMode
-            && CookingForBlockheadsSupport.SUPPORTS_DYE_SUBSTITUTES) {
-            addKitchenDyeSubstitutes(blockList, player.inventory.mainInventory);
+        if (!player.capabilities.isCreativeMode) {
+            addLooseBlockStock(blockList, player.inventory.mainInventory);
+            if (Mods.COOKING_FOR_BLOCKHEADS && CookingForBlockheadsSupport.SUPPORTS_DYE_SUBSTITUTES) {
+                addKitchenDyeSubstitutes(blockList, player.inventory.mainInventory);
+            }
         }
         return blockList;
+    }
+
+    private void addLooseBlockStock(List<WrappedItemStack> materials, ItemStack[] inventory) {
+        for (WrappedItemStack row : materials) {
+            if (row.pickedBlocksNeeded == 0 || !(row.itemStack.getItem() instanceof ItemBlock)) {
+                continue;
+            }
+            int available = 0;
+            for (ItemStack stack : inventory) {
+                if (stack != null && matchesOnlyBlockStock(stack, row.itemStack)) {
+                    available += stack.stackSize;
+                }
+            }
+            if (available == 0) {
+                continue;
+            }
+            // Tagged stock may be required as an exact ingredient in another row.
+            for (WrappedItemStack material : materials) {
+                if (matchesOnlyBlockStock(material.itemStack, row.itemStack)) {
+                    available -= Math.min(material.inventory, material.total - material.placed);
+                }
+            }
+            row.inventory += Math.min(Math.max(available, 0), row.pickedBlocksNeeded);
+        }
+    }
+
+    private static boolean matchesOnlyBlockStock(ItemStack candidate, ItemStack target) {
+        return BlockToItemStack.matchesBlockStock(candidate, target) && !BlockToItemStack.matches(candidate, target);
     }
 
     private void addKitchenDyeSubstitutes(List<WrappedItemStack> materials, ItemStack[] inventory) {
@@ -228,7 +261,7 @@ public class BlockList {
         public int total;
         public int inventory;
         private int kitchenDyesNeeded;
-        private boolean pickedBlock;
+        private int pickedBlocksNeeded;
 
         public WrappedItemStack(final ItemStack itemStack) {
             this(itemStack, 0, 0);

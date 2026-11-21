@@ -21,6 +21,29 @@ final class ArchitectureCraftPrinter {
         if (!hasSupport && ConfigurationHandler.placeAdjacent) {
             return false;
         }
+        if (placeAgainstSupports(interaction, x, y, z, tile, item, supports, false)) {
+            return true;
+        }
+        return ArchitectureCraftSupport.isTurnableCapital(tile)
+            && interaction.canSelectItem(ArchitectureCraftSupport.getHammer())
+            && placeAgainstSupports(interaction, x, y, z, tile, item, supports, true);
+    }
+
+    static boolean rotateCapital(PrinterInteraction interaction, int x, int y, int z) {
+        return interaction.selectItem(ArchitectureCraftSupport.getHammer()) && interaction.withSneaking(
+            false,
+            () -> interaction.useBlockOnServer(
+                interaction.player.getHeldItem(),
+                x,
+                y,
+                z,
+                ForgeDirection.UP.ordinal(),
+                Vec3.createVectorHelper(x + 0.5, y + 1, z + 0.5)));
+    }
+
+    private static boolean placeAgainstSupports(PrinterInteraction interaction, int x, int y, int z, TileEntity tile,
+        ItemStack item, ForgeDirection[] supports, boolean allowHammerTurn) {
+        final boolean hasSupport = supports.length > 0;
         for (ForgeDirection support : hasSupport ? supports : ForgeDirection.VALID_DIRECTIONS) {
             for (boolean sneaking : new boolean[] { true, false }) {
                 // A standing click on the support could activate it instead of placing the shape.
@@ -32,8 +55,17 @@ final class ArchitectureCraftPrinter {
                     .canClickForPlacement(interaction.world.getBlock(clickedX, clickedY, clickedZ), item, sneaking)) {
                     continue;
                 }
-                final Vec3 hit = ArchitectureCraftSupport
-                    .findHit(interaction.player, interaction.world, tile, item, x, y, z, support, sneaking);
+                final Vec3 hit = ArchitectureCraftSupport.findHit(
+                    interaction.player,
+                    interaction.world,
+                    tile,
+                    item,
+                    x,
+                    y,
+                    z,
+                    support,
+                    sneaking,
+                    allowHammerTurn);
                 if (hit != null) {
                     return interaction.selectItem(item) && interaction.withSneaking(
                         sneaking,

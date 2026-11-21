@@ -10,6 +10,7 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import gcewing.architecture.ArchitectureCraft;
 import gcewing.architecture.common.block.BlockShape;
 import gcewing.architecture.common.shape.Shape;
 import gcewing.architecture.common.shape.ShapeItem;
@@ -104,11 +105,37 @@ public final class ArchitectureCraftSupport {
 
     private static boolean sameOrientation(TileShape actual, TileShape expected) {
         return actual.side == expected.side && actual.getOffsetX() == expected.getOffsetX()
-            && (actual.turn == expected.turn || expected.shape.symmetry == ShapeSymmetry.Quadrilateral);
+            && (actual.turn == expected.turn
+                || (expected.shape.symmetry == ShapeSymmetry.Quadrilateral && !requiresCapitalTurn(expected.shape)));
+    }
+
+    private static boolean requiresCapitalTurn(Shape shape) {
+        return shape == Shape.DoricCapital || shape == Shape.CorinthianCapital;
+    }
+
+    public static boolean isTurnableCapital(TileEntity tile) {
+        return tile instanceof TileShape shape && requiresCapitalTurn(shape.shape) && shape.getOffsetX() == 0;
+    }
+
+    public static ItemStack getHammer() {
+        return new ItemStack(ArchitectureCraft.content.itemHammer);
+    }
+
+    public static boolean needsHammerTurn(TileEntity placed, TileEntity target) {
+        return placed instanceof TileShape actual && target instanceof TileShape expected
+            && canHammerTurn(actual, expected)
+            && sameMaterial(actual.baseBlockState, expected.baseBlockState);
+    }
+
+    private static boolean canHammerTurn(TileShape actual, TileShape expected) {
+        return isTurnableCapital(expected) && actual.shape == expected.shape
+            && actual.side == expected.side
+            && actual.getOffsetX() == 0
+            && actual.turn != expected.turn;
     }
 
     public static Vec3 findHit(EntityClientPlayerMP player, World world, TileEntity target, ItemStack stack, int x,
-        int y, int z, ForgeDirection support, boolean sneaking) {
+        int y, int z, ForgeDirection support, boolean sneaking, boolean allowHammerTurn) {
         if (!(target instanceof TileShape expected) || expected.shape == null) {
             return null;
         }
@@ -146,7 +173,8 @@ public final class ArchitectureCraftSupport {
                         neighborTile,
                         EnumFacing.values()[face.ordinal()],
                         relative);
-                    if (sameOrientation(candidate, expected)) {
+                    if (sameOrientation(candidate, expected)
+                        || (allowHammerTurn && canHammerTurn(candidate, expected))) {
                         return Vec3.createVectorHelper(neighbor.x + hitX, neighbor.y + hitY, neighbor.z + hitZ);
                     }
                 }

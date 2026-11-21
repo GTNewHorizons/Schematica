@@ -13,11 +13,13 @@ import net.minecraft.init.Items;
 import net.minecraft.item.ItemBucket;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.C03PacketPlayer.C05PacketPlayerLook;
+import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
 import net.minecraft.network.play.client.C0BPacketEntityAction;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.event.ForgeEventFactory;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent.Action;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.IFluidBlock;
@@ -29,6 +31,8 @@ import com.github.lunatrius.schematica.handler.ConfigurationHandler;
 import com.github.lunatrius.schematica.proxy.ClientProxy;
 import com.github.lunatrius.schematica.reference.Constants;
 import com.github.lunatrius.schematica.reference.Mods;
+
+import cpw.mods.fml.common.eventhandler.Event.Result;
 
 final class PrinterInteraction {
 
@@ -47,7 +51,8 @@ final class PrinterInteraction {
     boolean canSelectItem(ItemStack item) {
         final int slot = findItemSlot(item);
         return (slot >= 0 && slot < Constants.Inventory.Size.HOTBAR)
-            || (!ConfigurationHandler.swapSlotsQueue.isEmpty() && (slot >= 0 || this.controller.isInCreativeMode()));
+            || (!ConfigurationHandler.swapSlotsQueue.isEmpty() && (this.controller.isInCreativeMode()
+                || (slot >= 0 && this.player.openContainer == this.player.inventoryContainer)));
     }
 
     boolean selectItem(ItemStack item) {
@@ -151,13 +156,7 @@ final class PrinterInteraction {
     }
 
     boolean useBlock(ItemStack held, int x, int y, int z, int side, Vec3 hit) {
-        if (!isStillHolding(held)) {
-            return false;
-        }
-        // Interaction listeners can send packets before PlayerControllerMP handles the vanilla click.
-        this.controller.syncCurrentPlayItem();
-        if (ForgeEventFactory.onPlayerInteract(this.player, Action.RIGHT_CLICK_BLOCK, x, y, z, side, this.world)
-            .isCanceled() || !isStillHolding(held)) {
+        if (prepareBlockUse(held, x, y, z, side) == null) {
             return false;
         }
         final boolean success = this.controller.onPlayerRightClick(this.player, this.world, held, x, y, z, side, hit);
@@ -165,6 +164,37 @@ final class PrinterInteraction {
             this.player.swingItem();
         }
         return success;
+    }
+
+    boolean useBlockOnServer(ItemStack held, int x, int y, int z, int side, Vec3 hit) {
+        final PlayerInteractEvent event = prepareBlockUse(held, x, y, z, side);
+        if (event == null || event.useItem == Result.DENY) {
+            return false;
+        }
+        // The hammer changes tile orientation locally even when the server subsequently denies the click.
+        this.player.sendQueue.addToSendQueue(
+            new C08PacketPlayerBlockPlacement(
+                x,
+                y,
+                z,
+                side,
+                held,
+                (float) (hit.xCoord - x),
+                (float) (hit.yCoord - y),
+                (float) (hit.zCoord - z)));
+        this.player.swingItem();
+        return true;
+    }
+
+    private PlayerInteractEvent prepareBlockUse(ItemStack held, int x, int y, int z, int side) {
+        if (!isStillHolding(held)) {
+            return null;
+        }
+        // Interaction listeners can send packets before PlayerControllerMP handles the vanilla click.
+        this.controller.syncCurrentPlayItem();
+        final PlayerInteractEvent event = ForgeEventFactory
+            .onPlayerInteract(this.player, Action.RIGHT_CLICK_BLOCK, x, y, z, side, this.world);
+        return event.isCanceled() || !isStillHolding(held) ? null : event;
     }
 
     private boolean isStillHolding(ItemStack item) {

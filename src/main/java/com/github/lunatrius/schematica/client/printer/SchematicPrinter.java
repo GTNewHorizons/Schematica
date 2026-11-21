@@ -175,6 +175,15 @@ public class SchematicPrinter {
 
         final boolean architectureShape = Mods.ARCHITECTURE_CRAFT && ArchitectureCraftSupport.isShapeBlock(block);
         final TileEntity architectureTile = architectureShape ? this.schematic.getTileEntity(x, y, z) : null;
+        if (architectureShape && block == placedBlock
+            && ArchitectureCraftSupport
+                .needsHammerTurn(world.getTileEntity(worldX, worldY, worldZ), architectureTile)) {
+            if (ArchitectureCraftPrinter.rotateCapital(interaction, worldX, worldY, worldZ)) {
+                this.retryDelay[x][y][z] = (byte) Math.max(20, ConfigurationHandler.timeout);
+                return !ConfigurationHandler.placeInstantly;
+            }
+            return false;
+        }
         if (block == placedBlock && BlockToItemStack.matchesMetadata(block, placedMetadata, metadata)
             && (!architectureShape || ArchitectureCraftSupport
                 .matches(world.getTileEntity(worldX, worldY, worldZ), architectureTile, block))) {

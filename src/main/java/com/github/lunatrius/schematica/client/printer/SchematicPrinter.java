@@ -158,8 +158,14 @@ public class SchematicPrinter {
         if (Mods.FORGE_MICROBLOCK && MicroblockSupport.isMultipartBlock(block)) {
             final TileEntity tile = this.schematic.getTileEntity(x, y, z);
             if (MicroblockSupport.hasMicroblocks(tile)) {
-                return this.microblocks.place(interaction, tile, worldX, worldY, worldZ)
-                    && !ConfigurationHandler.placeInstantly;
+                if (this.microblocks.place(interaction, tile, worldX, worldY, worldZ)) {
+                    return !ConfigurationHandler.placeInstantly;
+                }
+                // Preserve existing parts and leave room for placements that need stock or support.
+                if (MicroblockSupport.isMultipartBlock(placedBlock) || world.isAirBlock(worldX, worldY, worldZ)
+                    || placedBlock.isReplaceable(world, worldX, worldY, worldZ)) {
+                    return false;
+                }
             }
         }
 

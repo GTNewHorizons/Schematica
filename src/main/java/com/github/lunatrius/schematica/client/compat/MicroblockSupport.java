@@ -33,6 +33,7 @@ import codechicken.microblock.Microblock;
 import codechicken.microblock.MicroblockPlacement;
 import codechicken.multipart.BlockMultipart;
 import codechicken.multipart.TMultiPart;
+import codechicken.multipart.TSlottedPart;
 import codechicken.multipart.TileMultipart;
 import scala.collection.Iterator;
 
@@ -96,8 +97,17 @@ public final class MicroblockSupport {
 
     public static boolean addMaterials(TileEntity schematic, TileEntity world, BiConsumer<ItemStack, Boolean> add) {
         final List<Microblock> expected = getParts(schematic);
-        if (expected.isEmpty()) {
+        final List<TMultiPart> otherParts = getOtherParts(schematic);
+        if (expected.isEmpty() && otherParts.isEmpty()) {
             return false;
+        }
+
+        final List<TMultiPart> unmatchedOtherParts = getOtherParts(world);
+        for (TMultiPart part : otherParts) {
+            final boolean placed = removeOtherPartMatch(unmatchedOtherParts, part);
+            for (ItemStack stack : part.getDrops()) {
+                add.accept(stack, placed);
+            }
         }
 
         final List<Microblock> unmatched = getParts(world);
@@ -496,14 +506,47 @@ public final class MicroblockSupport {
         player.rotationPitch = (float) -Math.toDegrees(Math.atan2(dy, Math.hypot(dx, dz)));
     }
 
+    public static boolean hasMissingOtherParts(TileEntity schematic, TileEntity world) {
+        final List<TMultiPart> unmatched = getOtherParts(world);
+        return getOtherParts(schematic).stream()
+            .anyMatch(part -> !removeOtherPartMatch(unmatched, part));
+    }
+
+    private static boolean removeOtherPartMatch(List<TMultiPart> placed, TMultiPart expected) {
+        for (int i = 0; i < placed.size(); i++) {
+            final TMultiPart actual = placed.get(i);
+            if (expected.getType()
+                .equals(actual.getType()) && slotMask(expected) == slotMask(actual)) {
+                placed.remove(i);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int slotMask(TMultiPart part) {
+        return part instanceof TSlottedPart slotted ? slotted.getSlotMask() : 0;
+    }
+
+    private static List<TMultiPart> getOtherParts(TileEntity tile) {
+        final List<TMultiPart> parts = getParts(tile, TMultiPart.class);
+        parts.removeIf(Microblock.class::isInstance);
+        return parts;
+    }
+
     private static List<Microblock> getParts(TileEntity tile) {
-        final List<Microblock> parts = new ArrayList<>();
+        return getParts(tile, Microblock.class);
+    }
+
+    private static <T extends TMultiPart> List<T> getParts(TileEntity tile, Class<T> type) {
+        final List<T> parts = new ArrayList<>();
         if (tile instanceof TileMultipart multipart) {
             final Iterator<TMultiPart> iterator = multipart.partList()
                 .iterator();
             while (iterator.hasNext()) {
-                if (iterator.next() instanceof Microblock part) {
-                    parts.add(part);
+                final TMultiPart part = iterator.next();
+                if (type.isInstance(part)) {
+                    parts.add(type.cast(part));
                 }
             }
         }

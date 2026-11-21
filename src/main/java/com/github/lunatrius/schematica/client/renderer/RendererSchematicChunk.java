@@ -394,6 +394,11 @@ public class RendererSchematicChunk {
             return CarpentersBlocksSupport
                 .matches(block, this.schematic.getTileEntity(x, y, z), world.getTileEntity(wx, wy, wz));
         }
+        if (Mods.FORGE_MICROBLOCK && MicroblockSupport.isMultipartBlock(block)
+            && MicroblockSupport
+                .hasMissingOtherParts(this.schematic.getTileEntity(x, y, z), world.getTileEntity(wx, wy, wz))) {
+            return false;
+        }
         return BlockToItemStack
             .matchesSavedState(block, this.minecraft.thePlayer, world, wx, wy, wz, this.schematic, x, y, z)
             && (!Mods.ARCHITECTURE_CRAFT || !ArchitectureCraftSupport.isShapeBlock(block)

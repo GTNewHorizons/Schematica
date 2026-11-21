@@ -111,9 +111,6 @@ final class CarpentersPrinter {
             return yaw != null && placeGarageDoor(interaction, x, y, z, block, item, yaw);
         }
         final TileEntity tile = schematic.getTileEntity(localX, localY, localZ);
-        if (CarpentersBlocksSupport.isSlope(block) && !interaction.canSelectItem(item)) {
-            return placeShape(interaction, x, y, z, block, tile, CarpentersBlocksSupport.getWedgeItem(item));
-        }
         if (CarpentersBlocksSupport.isStairs(block) || CarpentersBlocksSupport.isSlope(block)) {
             return placeShape(interaction, x, y, z, block, tile, item);
         }
@@ -199,15 +196,23 @@ final class CarpentersPrinter {
 
     private static boolean placeShape(PrinterInteraction interaction, int x, int y, int z, Block block, TileEntity tile,
         ItemStack item) {
-        if (PrinterInteraction.isBlacklisted(block, item) || !interaction.canSelectItem(item)) {
+        if (PrinterInteraction.isBlacklisted(block, item)) {
             return false;
         }
+        final ItemStack wedge = CarpentersBlocksSupport.isSlope(block) ? CarpentersBlocksSupport.getWedgeItem(item)
+            : item;
+        final boolean usePreferred = interaction.canSelectItem(item);
+        final boolean useWedge = !wedge.isItemEqual(item) && interaction.canSelectItem(wedge);
+        if (!usePreferred && !useWedge) {
+            return false;
+        }
+        final ItemStack[] items = usePreferred ? (useWedge ? new ItemStack[] { item, wedge } : new ItemStack[] { item })
+            : new ItemStack[] { wedge };
         final ForgeDirection[] supports = interaction.findSupports(x, y, z);
         if (supports.length == 0 && ConfigurationHandler.placeAdjacent) {
             return false;
         }
         final float originalYaw = interaction.player.rotationYaw;
-        final float pitch = interaction.player.rotationPitch;
         final float[] yaws = { originalYaw, 0, 90, 180, 270 };
         final boolean[] clickModes = ConfigurationHandler.placeAdjacent ? new boolean[] { true }
             : new boolean[] { true, false };
@@ -215,51 +220,75 @@ final class CarpentersPrinter {
             if (allowReshape && findHammer(interaction) == null) {
                 return false;
             }
-            for (boolean adjacent : clickModes) {
-                final ForgeDirection[] candidates = adjacent ? supports : ForgeDirection.VALID_DIRECTIONS;
-                for (float yaw : yaws) {
-                    for (ForgeDirection support : candidates) {
-                        final ForgeDirection face = support.getOpposite();
-                        final int clickedX = adjacent ? x + support.offsetX : x;
-                        final int clickedY = adjacent ? y + support.offsetY : y;
-                        final int clickedZ = adjacent ? z + support.offsetZ : z;
-                        final Block clicked = interaction.world.getBlock(clickedX, clickedY, clickedZ);
-                        if (!PrinterInteraction.canClickForPlacement(clicked, item, true)
-                            || (!adjacent && clicked == Blocks.snow_layer
-                                && face != ForgeDirection.UP
-                                && (interaction.world.getBlockMetadata(clickedX, clickedY, clickedZ) & 7) == 0)) {
-                            continue;
-                        }
-                        final Vec3 hit = findShapeHit(
-                            interaction.world,
-                            x,
-                            y,
-                            z,
-                            block,
-                            tile,
-                            item,
-                            yaw,
-                            allowReshape,
-                            face);
-                        if (hit == null) {
-                            continue;
-                        }
-                        final BooleanSupplier click = () -> interaction.withSneaking(
-                            true,
-                            () -> interaction.place(
-                                interaction.player.getHeldItem(),
-                                clickedX,
-                                clickedY,
-                                clickedZ,
-                                face.ordinal(),
-                                hit.addVector(clickedX, clickedY, clickedZ)));
-                        return interaction.selectItem(item)
-                            && (yaw == originalYaw ? click.getAsBoolean() : interaction.withLook(yaw, pitch, click));
-                    }
+            for (ItemStack candidate : items) {
+                final BooleanSupplier click = findShapeClick(
+                    interaction,
+                    x,
+                    y,
+                    z,
+                    block,
+                    tile,
+                    candidate,
+                    supports,
+                    yaws,
+                    clickModes,
+                    allowReshape);
+                if (click != null) {
+                    return interaction.selectItem(candidate) && click.getAsBoolean();
                 }
             }
         }
         return false;
+    }
+
+    private static BooleanSupplier findShapeClick(PrinterInteraction interaction, int x, int y, int z, Block block,
+        TileEntity tile, ItemStack item, ForgeDirection[] supports, float[] yaws, boolean[] clickModes,
+        boolean allowReshape) {
+        final float originalYaw = interaction.player.rotationYaw;
+        final float pitch = interaction.player.rotationPitch;
+        for (boolean adjacent : clickModes) {
+            final ForgeDirection[] candidates = adjacent ? supports : ForgeDirection.VALID_DIRECTIONS;
+            for (float yaw : yaws) {
+                for (ForgeDirection support : candidates) {
+                    final ForgeDirection face = support.getOpposite();
+                    final int clickedX = adjacent ? x + support.offsetX : x;
+                    final int clickedY = adjacent ? y + support.offsetY : y;
+                    final int clickedZ = adjacent ? z + support.offsetZ : z;
+                    final Block clicked = interaction.world.getBlock(clickedX, clickedY, clickedZ);
+                    if (!PrinterInteraction.canClickForPlacement(clicked, item, true)
+                        || (!adjacent && clicked == Blocks.snow_layer
+                            && face != ForgeDirection.UP
+                            && (interaction.world.getBlockMetadata(clickedX, clickedY, clickedZ) & 7) == 0)) {
+                        continue;
+                    }
+                    final Vec3 hit = findShapeHit(
+                        interaction.world,
+                        x,
+                        y,
+                        z,
+                        block,
+                        tile,
+                        item,
+                        yaw,
+                        allowReshape,
+                        face);
+                    if (hit == null) {
+                        continue;
+                    }
+                    final BooleanSupplier click = () -> interaction.withSneaking(
+                        true,
+                        () -> interaction.place(
+                            interaction.player.getHeldItem(),
+                            clickedX,
+                            clickedY,
+                            clickedZ,
+                            face.ordinal(),
+                            hit.addVector(clickedX, clickedY, clickedZ)));
+                    return yaw == originalYaw ? click : () -> interaction.withLook(yaw, pitch, click);
+                }
+            }
+        }
+        return null;
     }
 
     private static Vec3 findShapeHit(World world, int x, int y, int z, Block block, TileEntity tile, ItemStack item,

@@ -40,6 +40,7 @@ public final class MicroblockSupport {
 
     private static final double[] FACE_SAMPLES = { 0.5, 0.125, 0.875, 0.03125, 0.96875 };
     private static final double SERVER_SNEAK_EYE_OFFSET = 0.08;
+    public static final String NBT_MAT = "mat";
 
     private MicroblockSupport() {}
 
@@ -55,10 +56,10 @@ public final class MicroblockSupport {
         return stack.isItemEqual(target) && stack.hasTagCompound()
             && target.hasTagCompound()
             && stack.getTagCompound()
-                .getString("mat")
+                .getString(NBT_MAT)
                 .equals(
                     target.getTagCompound()
-                        .getString("mat"));
+                        .getString(NBT_MAT));
     }
 
     public static boolean hasMicroblocks(TileEntity tile) {

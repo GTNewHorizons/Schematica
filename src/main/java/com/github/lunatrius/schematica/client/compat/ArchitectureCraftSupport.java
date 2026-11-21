@@ -28,6 +28,9 @@ import gcewing.architecture.util.Utils;
 public final class ArchitectureCraftSupport {
 
     private static final double[] HIT_OFFSETS = { 0.5, 0.125, 0.875 };
+    public static final String NBT_SHAPE = "Shape";
+    public static final String NBT_BASE_DATA = "BaseData";
+    public static final String NBT_BASE_NAME = "BaseName";
 
     private ArchitectureCraftSupport() {}
 
@@ -49,8 +52,8 @@ public final class ArchitectureCraftSupport {
             return "";
         }
         final NBTTagCompound tag = stack.getTagCompound();
-        final Block base = tag == null ? null : Block.getBlockFromName(tag.getString("BaseName"));
-        return base == null ? "" : Utils.displayNameOfBlock(base, tag.getInteger("BaseData"));
+        final Block base = tag == null ? null : Block.getBlockFromName(tag.getString(NBT_BASE_NAME));
+        return base == null ? "" : Utils.displayNameOfBlock(base, tag.getInteger(NBT_BASE_DATA));
     }
 
     public static ItemStack getSecondaryItem(TileEntity tile) {
@@ -80,12 +83,12 @@ public final class ArchitectureCraftSupport {
         final NBTTagCompound tag = stack.getTagCompound();
         final NBTTagCompound expected = target.getTagCompound();
         return tag != null && expected != null
-            && tag.hasKey("Shape")
-            && expected.hasKey("Shape")
-            && tag.getInteger("Shape") == expected.getInteger("Shape")
-            && tag.getInteger("BaseData") == expected.getInteger("BaseData")
-            && tag.getString("BaseName")
-                .equals(expected.getString("BaseName"));
+            && tag.hasKey(NBT_SHAPE)
+            && expected.hasKey(NBT_SHAPE)
+            && tag.getInteger(NBT_SHAPE) == expected.getInteger(NBT_SHAPE)
+            && tag.getInteger(NBT_BASE_DATA) == expected.getInteger(NBT_BASE_DATA)
+            && tag.getString(NBT_BASE_NAME)
+                .equals(expected.getString(NBT_BASE_NAME));
     }
 
     public static boolean matches(TileEntity placed, TileEntity target, Block block) {

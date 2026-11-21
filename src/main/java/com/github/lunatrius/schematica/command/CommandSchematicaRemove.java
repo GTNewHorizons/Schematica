@@ -14,10 +14,10 @@ import net.minecraft.util.ChatStyle;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.IChatComponent;
 
+import com.github.lunatrius.schematica.FileFilterSchematic;
 import com.github.lunatrius.schematica.Schematica;
 import com.github.lunatrius.schematica.reference.Names;
 import com.github.lunatrius.schematica.reference.Reference;
-import com.github.lunatrius.schematica.util.FileUtils;
 import com.google.common.base.Charsets;
 import com.google.common.hash.Hashing;
 
@@ -67,11 +67,10 @@ public class CommandSchematicaRemove extends CommandSchematicaBase {
             }
         }
 
-        String filename = String.format("%s.schematic", name);
         File schematicDirectory = Schematica.proxy.getPlayerSchematicDirectory(player, true);
-        File file = new File(schematicDirectory, filename);
-        if (!FileUtils.contains(schematicDirectory, file)) {
-            Reference.logger.error("{} has tried to download the file {}", player.getDisplayName(), filename);
+        File file = FileFilterSchematic.resolve(schematicDirectory, name);
+        if (file == null) {
+            Reference.logger.error("{} has tried to remove the file {}", player.getDisplayName(), name);
             throw new CommandException(Names.Command.Remove.Message.SCHEMATIC_NOT_FOUND);
         }
 

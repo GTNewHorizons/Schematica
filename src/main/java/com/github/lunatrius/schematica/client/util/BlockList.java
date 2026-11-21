@@ -81,8 +81,8 @@ public class BlockList {
                         continue;
                     }
 
-                    final ItemStack placed = block == mcBlock && (carpenter || BlockToItemStack
-                        .matchesMetadata(block, mcWorld.getBlockMetadata(wx, wy, wz), world.getBlockMetadata(x, y, z)))
+                    final ItemStack placed = block == mcBlock && (carpenter
+                        || BlockToItemStack.matchesSavedState(block, player, mcWorld, wx, wy, wz, world, x, y, z))
                             ? BlockToItemStack.getItemStack(player, mcBlock, mcWorld, wx, wy, wz)
                             : null;
                     final boolean complete = placed != null && BlockToItemStack.matches(placed, stack)

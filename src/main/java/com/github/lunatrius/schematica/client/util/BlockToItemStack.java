@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -223,6 +224,27 @@ public class BlockToItemStack {
         return actual == saved || (block.getClass()
             .getName()
             .equals("gregtech.common.blocks.GTBlockOre") && block.damageDropped(actual) == block.damageDropped(saved));
+    }
+
+    /** Compares base placement state once both locations have the same block. */
+    public static boolean matchesSavedState(Block block, EntityPlayer player, World world, int x, int y, int z,
+        World schematic, int localX, int localY, int localZ) {
+        final int savedMetadata = schematic.getBlockMetadata(localX, localY, localZ);
+        if (!matchesMetadata(block, world.getBlockMetadata(x, y, z), savedMetadata)
+            || !matchesPaint(block, world, x, y, z, schematic, localX, localY, localZ)) {
+            return false;
+        }
+        if (block != Blocks.skull && (!block.hasTileEntity(savedMetadata) || !isBannerBlock(block))) {
+            return true;
+        }
+        final ItemStack actual = getItemStack(player, block, world, x, y, z);
+        final ItemStack expected = getItemStack(player, block, schematic, localX, localY, localZ);
+        return actual != null && expected != null && matches(actual, expected);
+    }
+
+    private static boolean isBannerBlock(Block block) {
+        final Item banner = GameRegistry.findItem("etfuturum", "banner");
+        return banner != null && block == Block.getBlockFromItem(banner);
     }
 
     public static boolean matchesPaint(Block block, IBlockAccess world, int x, int y, int z, IBlockAccess schematic,

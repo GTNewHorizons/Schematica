@@ -14,7 +14,7 @@ import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.profiler.Profiler;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
 import net.minecraftforge.client.ForgeHooksClient;
 
 import org.lwjgl.opengl.GL11;
@@ -249,7 +249,7 @@ public class RendererSchematicChunk {
     }
 
     public void renderBlocks(int renderPass, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
-        IBlockAccess mcWorld = this.minecraft.theWorld;
+        World mcWorld = this.minecraft.theWorld;
         RenderBlocks renderBlocks = RendererSchematicGlobal.INSTANCE.renderBlocks;
         final boolean renderMicroblocks = renderPass < 2 && Mods.FORGE_MICROBLOCK;
 
@@ -389,14 +389,13 @@ public class RendererSchematicChunk {
         this.minecraft.gameSettings.ambientOcclusion = ambientOcclusion;
     }
 
-    private boolean matchesBlockState(Block block, IBlockAccess world, int x, int y, int z, int wx, int wy, int wz) {
+    private boolean matchesBlockState(Block block, World world, int x, int y, int z, int wx, int wy, int wz) {
         if (Mods.CARPENTERS_BLOCKS && CarpentersBlocksSupport.isCoverable(block)) {
             return CarpentersBlocksSupport
                 .matches(block, this.schematic.getTileEntity(x, y, z), world.getTileEntity(wx, wy, wz));
         }
         return BlockToItemStack
-            .matchesMetadata(block, world.getBlockMetadata(wx, wy, wz), this.schematic.getBlockMetadata(x, y, z))
-            && BlockToItemStack.matchesPaint(block, world, wx, wy, wz, this.schematic, x, y, z)
+            .matchesSavedState(block, this.minecraft.thePlayer, world, wx, wy, wz, this.schematic, x, y, z)
             && (!Mods.ARCHITECTURE_CRAFT || !ArchitectureCraftSupport.isShapeBlock(block)
                 || ArchitectureCraftSupport
                     .matchesPreview(world.getTileEntity(wx, wy, wz), this.schematic.getTileEntity(x, y, z), block));
@@ -407,7 +406,7 @@ public class RendererSchematicChunk {
             return;
         }
 
-        IBlockAccess mcWorld = this.minecraft.theWorld;
+        World mcWorld = this.minecraft.theWorld;
 
         int x, y, z;
 

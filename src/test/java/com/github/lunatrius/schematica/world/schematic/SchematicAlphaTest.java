@@ -19,6 +19,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntitySkull;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,6 +27,8 @@ import org.junit.rules.TemporaryFolder;
 
 import com.github.lunatrius.schematica.Schematica;
 import com.github.lunatrius.schematica.api.ISchematic;
+import com.github.lunatrius.schematica.client.util.BlockToItemStack;
+import com.github.lunatrius.schematica.client.world.SchematicWorld;
 import com.github.lunatrius.schematica.handler.DownloadHandler;
 import com.github.lunatrius.schematica.network.message.MessageCapabilities;
 import com.github.lunatrius.schematica.network.message.MessageDownloadBegin;
@@ -49,6 +52,11 @@ public class SchematicAlphaTest {
     @Test
     public void legacyFilesAndCurrentDownloadsPreserveWideBlockData() throws Exception {
         runFixture("wideBlockData");
+    }
+
+    @Test
+    public void savedSkullOwnerMattersEvenWhenBlockMetadataMatches() throws Exception {
+        runFixture("skullOwners");
     }
 
     private void runFixture(String name) throws Exception {
@@ -87,6 +95,29 @@ public class SchematicAlphaTest {
                     return gameDir;
                 }
             };
+        }
+
+        public static void skullOwners(File gameDir) throws ReflectiveOperationException {
+            bootstrap(gameDir);
+            final SchematicWorld expected = skullWorld("Builder");
+            final SchematicWorld different = skullWorld("Other");
+            final SchematicWorld same = skullWorld("builder");
+            assertFalse(BlockToItemStack.matchesSavedState(Blocks.skull, null, different, 0, 0, 0, expected, 0, 0, 0));
+            assertTrue(BlockToItemStack.matchesSavedState(Blocks.skull, null, same, 0, 0, 0, expected, 0, 0, 0));
+        }
+
+        private static SchematicWorld skullWorld(String owner) {
+            final Schematic schematic = new Schematic(new ItemStack(Blocks.stone), 1, 1, 1);
+            assertTrue(schematic.setBlock(0, 0, 0, Blocks.skull, 1));
+            final TileEntitySkull skull = new TileEntitySkull();
+            final NBTTagCompound data = new NBTTagCompound();
+            data.setByte("SkullType", (byte) 3);
+            final NBTTagCompound profile = new NBTTagCompound();
+            profile.setString("Name", owner);
+            data.setTag("Owner", profile);
+            skull.readFromNBT(data);
+            schematic.setTileEntity(0, 0, 0, skull);
+            return new SchematicWorld(schematic);
         }
 
         public static void wideBlockData(File gameDir) throws Exception {

@@ -155,7 +155,6 @@ public class SchematicPrinter {
         final Block block = this.schematic.getBlock(x, y, z);
         final Block placedBlock = world.getBlock(worldX, worldY, worldZ);
         final int metadata = this.schematic.getBlockMetadata(x, y, z);
-        final int placedMetadata = world.getBlockMetadata(worldX, worldY, worldZ);
 
         if (Mods.FORGE_MICROBLOCK && MicroblockSupport.isMultipartBlock(block)) {
             final TileEntity tile = this.schematic.getTileEntity(x, y, z);
@@ -189,8 +188,8 @@ public class SchematicPrinter {
             }
             return false;
         }
-        if (block == placedBlock && BlockToItemStack.matchesMetadata(block, placedMetadata, metadata)
-            && BlockToItemStack.matchesPaint(block, world, worldX, worldY, worldZ, this.schematic, x, y, z)
+        if (block == placedBlock
+            && BlockToItemStack.matchesSavedState(block, player, world, worldX, worldY, worldZ, this.schematic, x, y, z)
             && (!architectureShape
                 || ArchitectureCraftSupport.matches(placedArchitectureTile, architectureTile, block))) {
             return false;

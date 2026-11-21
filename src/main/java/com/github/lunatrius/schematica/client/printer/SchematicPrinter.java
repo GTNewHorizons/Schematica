@@ -75,12 +75,14 @@ public class SchematicPrinter {
     public void setSchematic(SchematicWorld schematic) {
         this.isPrinting = false;
         this.schematic = schematic;
+        if (schematic == null) {
+            this.carpenters.reset();
+        }
         refresh();
     }
 
     public void refresh() {
         this.microblocks.reset();
-        this.carpenters.reset();
         if (this.schematic != null) {
             this.retryDelay = new byte[this.schematic.getWidth()][this.schematic.getHeight()][this.schematic
                 .getLength()];

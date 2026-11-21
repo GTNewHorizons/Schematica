@@ -54,6 +54,7 @@ final class ArchitectureCraftPrinter {
             return false;
         }
         final int previousTurn = ArchitectureCraftSupport.getTurn(tile);
+        // Native hammer prediction changes the tile even when the server denies the click.
         final boolean sent = interaction.withSneaking(
             false,
             () -> interaction.useBlockOnServer(

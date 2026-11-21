@@ -186,7 +186,6 @@ final class PrinterInteraction {
         if (event == null || event.useItem == Result.DENY) {
             return false;
         }
-        // The hammer changes tile orientation locally even when the server subsequently denies the click.
         this.player.sendQueue.addToSendQueue(
             new C08PacketPlayerBlockPlacement(
                 x,

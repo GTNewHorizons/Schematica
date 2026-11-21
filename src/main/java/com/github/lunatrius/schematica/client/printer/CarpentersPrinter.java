@@ -100,7 +100,7 @@ final class CarpentersPrinter {
         return used || sneaking;
     }
 
-    static boolean place(PrinterInteraction interaction, SchematicWorld schematic, Block block, int localX, int localY,
+    boolean place(PrinterInteraction interaction, SchematicWorld schematic, Block block, int localX, int localY,
         int localZ, ItemStack item, BooleanSupplier placeNormally) {
         final int x = schematic.position.x + localX;
         final int y = schematic.position.y + localY;
@@ -175,23 +175,36 @@ final class CarpentersPrinter {
             .findHammer(interaction.player.inventory.mainInventory, interaction::canSelectItem);
     }
 
-    private static boolean placeGarageDoor(PrinterInteraction interaction, int x, int y, int z, Block block,
-        ItemStack item, float yaw) {
-        if (PrinterInteraction.isBlacklisted(block, item) || !interaction.selectItem(item)) {
+    private boolean placeGarageDoor(PrinterInteraction interaction, int x, int y, int z, Block block, ItemStack item,
+        float yaw) {
+        final World world = interaction.world;
+        if (PrinterInteraction.isBlacklisted(block, item)
+            || !PrinterInteraction.canClickForPlacement(world.getBlock(x, y + 1, z), item, true)
+            || !interaction.selectItem(item)) {
             return false;
         }
-        return interaction.withSneaking(
+        // Client prediction creates the whole column, but a rejected server click only corrects the host cell.
+        final boolean sent = interaction.withSneaking(
             true,
             () -> interaction.withLook(
                 yaw,
                 interaction.player.rotationPitch,
-                () -> interaction.place(
+                () -> interaction.useBlockOnServer(
                     interaction.player.getHeldItem(),
                     x,
                     y + 1,
                     z,
                     ForgeDirection.DOWN.ordinal(),
                     Vec3.createVectorHelper(x + 0.5, y + 1, z + 0.5))));
+        if (sent) {
+            this.pendingClicks.put(
+                new ChunkPosition(x, y, z),
+                new PendingClick(
+                    world,
+                    this.currentPass,
+                    () -> world.blockExists(x, y, z) && world.getBlock(x, y, z) == block));
+        }
+        return sent;
     }
 
     private static boolean placeShape(PrinterInteraction interaction, int x, int y, int z, Block block, TileEntity tile,

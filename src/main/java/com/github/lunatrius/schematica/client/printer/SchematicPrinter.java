@@ -245,7 +245,7 @@ public class SchematicPrinter {
         if (architectureShape) {
             success = ArchitectureCraftPrinter.place(interaction, worldX, worldY, worldZ, architectureTile, itemStack);
         } else if (carpenterBlock) {
-            success = CarpentersPrinter.place(
+            success = this.carpenters.place(
                 interaction,
                 this.schematic,
                 block,

@@ -109,10 +109,11 @@ public final class CarpentersHammerSupport {
         new BlockSettings(BlockCarpentersButton.class, toggle(BUTTON::getPolarity, Click.MANUAL)),
         new BlockSettings(BlockCarpentersLever.class, toggle(LEVER::getPolarity, Click.MANUAL)),
         new BlockSettings(BlockCarpentersCollapsibleBlock.class, toggle(TEBase::getData, Click.MANUAL)),
+        // An unlock click also enables insertion and extraction. Only compare safe access settings for preview.
         new BlockSettings(
             BlockCarpentersSafe.class,
-            toggle(Safe::isLocked, Click.SNEAK_RIGHT),
-            cycle(Safe::getAutoPerm, 4)) };
+            toggle(Safe::isLocked, Click.MANUAL),
+            toggle(Safe::getAutoPerm, Click.MANUAL)) };
 
     private CarpentersHammerSupport() {}
 

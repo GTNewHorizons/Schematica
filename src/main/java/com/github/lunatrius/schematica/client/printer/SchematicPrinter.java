@@ -106,9 +106,6 @@ public class SchematicPrinter {
         final int minZ = Math.max(0, trans.z - 3);
         final int maxZ = Math.min(this.schematic.getLength(), trans.z + 4);
 
-        final int slot = player.inventory.currentItem;
-        final boolean wasSneaking = player.isSneaking();
-        interaction.syncSneaking(true);
         try {
             final boolean isRenderingLayer = this.schematic.isRenderingLayer;
             final int renderingLayer = this.schematic.renderingLayer;
@@ -118,8 +115,13 @@ public class SchematicPrinter {
                 }
                 for (int x = minX; x < maxX; x++) {
                     for (int z = minZ; z < maxZ; z++) {
-                        if (printCell(interaction, x, y, z)) {
-                            return true;
+                        final int selectedSlot = player.inventory.currentItem;
+                        try {
+                            if (printCell(interaction, x, y, z)) {
+                                return true;
+                            }
+                        } finally {
+                            player.inventory.currentItem = selectedSlot;
                         }
                     }
                 }
@@ -129,9 +131,6 @@ public class SchematicPrinter {
         } catch (Exception e) {
             Reference.logger.error("Could not place block!", e);
             return false;
-        } finally {
-            player.inventory.currentItem = slot;
-            interaction.syncSneaking(wasSneaking);
         }
     }
 
@@ -217,9 +216,7 @@ public class SchematicPrinter {
         }
 
         if (ConfigurationHandler.destroyBlocks && !world.isAirBlock(worldX, worldY, worldZ)
-            && this.minecraft.playerController.isInCreativeMode()) {
-            this.minecraft.playerController.clickBlock(worldX, worldY, worldZ, 0);
-
+            && interaction.breakBlock(worldX, worldY, worldZ)) {
             this.retryDelay[x][y][z] = (byte) ConfigurationHandler.timeout;
 
             return !ConfigurationHandler.destroyInstantly;
@@ -345,13 +342,15 @@ public class SchematicPrinter {
 
     private boolean mergeSlab(PrinterInteraction interaction, int x, int y, int z, ItemStack slab) {
         final boolean top = (interaction.world.getBlockMetadata(x, y, z) & 8) != 0;
-        return interaction.place(
-            slab,
-            x,
-            y,
-            z,
-            top ? ForgeDirection.DOWN.ordinal() : ForgeDirection.UP.ordinal(),
-            Vec3.createVectorHelper(x + 0.5, y + 0.5, z + 0.5));
+        return interaction.withSneaking(
+            true,
+            () -> interaction.place(
+                slab,
+                x,
+                y,
+                z,
+                top ? ForgeDirection.DOWN.ordinal() : ForgeDirection.UP.ordinal(),
+                Vec3.createVectorHelper(x + 0.5, y + 0.5, z + 0.5)));
     }
 
     private boolean isValidOrientation(EntityPlayer player, int x, int y, int z, PlacementData data, int metadata) {

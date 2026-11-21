@@ -137,10 +137,13 @@ final class CarpentersPrinter {
             x + 0.5 + face.offsetX * 0.5,
             y + 0.5 + face.offsetY * 0.5,
             z + 0.5 + face.offsetZ * 0.5);
-        final boolean used = interaction
-            .withSneaking(sneaking, () -> interaction.useBlock(interaction.player.getHeldItem(), x, y, z, side, hit));
-        // Carpenter's Blocks cancels its sneak interaction after dispatching a separate activation packet.
-        return used || sneaking;
+        return interaction.withSneaking(sneaking, () -> {
+            final ItemStack held = interaction.player.getHeldItem();
+            if (sneaking && held != null && CarpentersBlocksSupport.usesActivationPacket(held)) {
+                return interaction.activateCarpenterBlock(held, x, y, z, side);
+            }
+            return interaction.useBlock(held, x, y, z, side, hit);
+        });
     }
 
     boolean place(PrinterInteraction interaction, SchematicWorld schematic, Block block, int localX, int localY,

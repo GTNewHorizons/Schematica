@@ -14,6 +14,8 @@ import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.carpentersblocks.api.ICarpentersChisel;
+import com.carpentersblocks.api.ICarpentersHammer;
 import com.carpentersblocks.block.BlockCarpentersBlock;
 import com.carpentersblocks.block.BlockCarpentersCollapsibleBlock;
 import com.carpentersblocks.block.BlockCarpentersGarageDoor;
@@ -28,8 +30,10 @@ import com.carpentersblocks.data.Ladder;
 import com.carpentersblocks.data.Slope;
 import com.carpentersblocks.data.Stairs;
 import com.carpentersblocks.data.Torch;
+import com.carpentersblocks.network.PacketActivateBlock;
 import com.carpentersblocks.tileentity.TEBase;
 import com.carpentersblocks.util.BlockProperties;
+import com.carpentersblocks.util.handler.PacketHandler;
 import com.carpentersblocks.util.protection.PlayerPermissions;
 import com.carpentersblocks.util.registry.FeatureRegistry;
 import com.github.lunatrius.schematica.client.util.BlockToItemStack;
@@ -176,12 +180,24 @@ public final class CarpentersBlocksSupport {
         return block instanceof BlockCarpentersBlock || isStairs(block) || isCollapsible(block);
     }
 
+    public static boolean isCarpenterTool(ItemStack stack) {
+        return stack.getItem() instanceof ICarpentersHammer || stack.getItem() instanceof ICarpentersChisel;
+    }
+
+    public static boolean usesActivationPacket(ItemStack stack) {
+        return !(stack.getItem() instanceof ItemBlock) || BlockProperties.isOverlay(stack);
+    }
+
+    public static void sendActivation(int x, int y, int z, int side) {
+        PacketHandler.sendPacketToServer(new PacketActivateBlock(x, y, z, side));
+    }
+
     public static boolean allowsPlacementClick(Block clicked, ItemStack stack, boolean sneaking) {
         if (!isCoverable(clicked)) {
             return true;
         }
         if (sneaking) {
-            return stack.getItem() instanceof ItemBlock && !BlockProperties.isOverlay(stack);
+            return !usesActivationPacket(stack);
         }
         return Mods.FORGE_MICROBLOCK && MicroblockSupport.isMicroblockItem(stack)
             && passesThroughMicroblockClick(clicked);
@@ -272,26 +288,39 @@ public final class CarpentersBlocksSupport {
             return null;
         }
 
-        // A single use creates every panel below the host until the first non-replaceable block.
-        int panelY = y - 1;
-        int worldY = wy - 1;
-        while (worldY >= 0 && world.getBlock(wx, worldY, wz)
-            .isReplaceable(world, wx, worldY, wz)) {
-            if (schematic.getBlockIncludingHiddenLayers(x, panelY, z) != block
-                || !(schematic.getTileEntity(x, panelY, z) instanceof TEBase panel)
-                || door.isHost(panel)
-                || door.getDirection(panel) != direction) {
+        // Native placement fills the replaceable prefix. Every remaining saved panel must already exist.
+        boolean fillsPanel = true;
+        for (int panelY = y - 1, worldY = wy - 1;; panelY--, worldY--) {
+            fillsPanel = fillsPanel && worldY >= 0
+                && world.getBlock(wx, worldY, wz)
+                    .isReplaceable(world, wx, worldY, wz);
+            if (schematic.getBlockIncludingHiddenLayers(x, panelY, z) != block) {
+                if (fillsPanel) {
+                    return null;
+                }
+                break;
+            }
+            if (!(schematic.getTileEntity(x, panelY, z) instanceof TEBase savedPanel)) {
                 return null;
             }
-            panelY--;
-            worldY--;
-        }
-        if (schematic.getBlockIncludingHiddenLayers(x, panelY, z) == block && (world.getBlock(wx, worldY, wz) != block
-            || !(world.getTileEntity(wx, worldY, wz) instanceof TEBase panel)
-            || door.getDirection(panel) != direction)) {
-            return null;
+            if (door.isHost(savedPanel)) {
+                if (fillsPanel) {
+                    return null;
+                }
+                break;
+            }
+            if (door.getDirection(savedPanel) != direction
+                || (!fillsPanel && (worldY < 0 || world.getBlock(wx, worldY, wz) != block
+                    || !isGaragePanel(world.getTileEntity(wx, worldY, wz), direction)))) {
+                return null;
+            }
         }
         return Direction.facingToDirection[direction.ordinal()] * 90.0f;
+    }
+
+    private static boolean isGaragePanel(TileEntity tile, ForgeDirection direction) {
+        return tile instanceof TEBase panel && !GarageDoor.INSTANCE.isHost(panel)
+            && GarageDoor.INSTANCE.getDirection(panel) == direction;
     }
 
     public static boolean matchesStairPlacement(TileEntity tile, Block block, World world, int x, int y, int z,

@@ -12,6 +12,7 @@ import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemBucket;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemSword;
 import net.minecraft.network.play.client.C03PacketPlayer.C05PacketPlayerLook;
 import net.minecraft.network.play.client.C07PacketPlayerDigging;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
@@ -205,6 +206,51 @@ final class PrinterInteraction {
         return true;
     }
 
+    boolean breakBlock(int x, int y, int z) {
+        if (!this.controller.isInCreativeMode()) {
+            return false;
+        }
+        final int originalSlot = this.inventory.currentItem;
+        int breakSlot = originalSlot;
+        if (!canBreakWith(this.inventory.getCurrentItem())) {
+            for (breakSlot = 0; breakSlot < Constants.Inventory.Size.HOTBAR; breakSlot++) {
+                if (canBreakWith(this.inventory.getStackInSlot(breakSlot))) {
+                    break;
+                }
+            }
+            if (breakSlot == Constants.Inventory.Size.HOTBAR) {
+                return false;
+            }
+        }
+        this.inventory.currentItem = breakSlot;
+        try {
+            return withSneaking(false, () -> {
+                this.controller.syncCurrentPlayItem();
+                this.controller.clickBlock(x, y, z, ForgeDirection.DOWN.ordinal());
+                return true;
+            });
+        } finally {
+            this.inventory.currentItem = originalSlot;
+        }
+    }
+
+    private static boolean canBreakWith(ItemStack held) {
+        return held == null || (!(held.getItem() instanceof ItemSword)
+            && (!Mods.CARPENTERS_BLOCKS || !CarpentersBlocksSupport.isCarpenterTool(held)));
+    }
+
+    boolean activateCarpenterBlock(ItemStack held, int x, int y, int z, int side) {
+        if (!isStillHolding(held) || !CarpentersBlocksSupport.isCoverable(this.world.getBlock(x, y, z))
+            || !CarpentersBlocksSupport.canConfigure(this.world.getTileEntity(x, y, z), this.player)) {
+            return false;
+        }
+        this.controller.syncCurrentPlayItem();
+        // Carpenter's activation packet runs a Forge interaction check on the server before changing the tile.
+        CarpentersBlocksSupport.sendActivation(x, y, z, side);
+        this.player.swingItem();
+        return true;
+    }
+
     boolean tapBlock(ItemStack held, int x, int y, int z, int side) {
         if (!isStillHolding(held) || (!this.controller.isInCreativeMode() && this.world.getBlock(x, y, z)
             .getPlayerRelativeBlockHardness(this.player, this.world, x, y, z) >= 1)) {
@@ -238,23 +284,24 @@ final class PrinterInteraction {
         return item != null && item.stackSize > 0 && item == this.player.getHeldItem();
     }
 
-    void syncSneaking(boolean sneaking) {
+    private void syncSneaking(boolean sneaking) {
         this.player.setSneaking(sneaking);
         this.player.sendQueue.addToSendQueue(new C0BPacketEntityAction(this.player, sneaking ? 1 : 2));
     }
 
     boolean withSneaking(boolean sneaking, BooleanSupplier action) {
         final boolean previousInput = this.player.movementInput.sneak;
+        final boolean wasSneaking = this.player.isSneaking();
         this.player.movementInput.sneak = sneaking;
-        if (!sneaking) {
-            syncSneaking(false);
+        if (sneaking != wasSneaking) {
+            syncSneaking(sneaking);
         }
         try {
             return action.getAsBoolean();
         } finally {
             this.player.movementInput.sneak = previousInput;
-            if (!sneaking) {
-                syncSneaking(true);
+            if (sneaking != wasSneaking) {
+                syncSneaking(wasSneaking);
             }
         }
     }

@@ -127,6 +127,10 @@ public final class ArchitectureCraftSupport {
             && sameMaterial(actual.baseBlockState, expected.baseBlockState);
     }
 
+    public static int getTurn(TileEntity tile) {
+        return ((TileShape) tile).turn;
+    }
+
     private static boolean canHammerTurn(TileShape actual, TileShape expected) {
         return isTurnableCapital(expected) && actual.shape == expected.shape
             && actual.side == expected.side

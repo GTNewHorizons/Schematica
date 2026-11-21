@@ -39,6 +39,7 @@ public class SchematicPrinter {
     private final Minecraft minecraft = Minecraft.getMinecraft();
     private final MicroblockPrinter microblocks = new MicroblockPrinter();
     private final CarpentersPrinter carpenters = new CarpentersPrinter();
+    private final ArchitectureCraftPrinter architectureCraft = new ArchitectureCraftPrinter();
 
     private boolean isEnabled;
     private boolean isPrinting;
@@ -79,6 +80,7 @@ public class SchematicPrinter {
     public void refresh() {
         this.microblocks.reset();
         this.carpenters.reset();
+        this.architectureCraft.reset();
         if (this.schematic != null) {
             this.retryDelay = new byte[this.schematic.getWidth()][this.schematic.getHeight()][this.schematic
                 .getLength()];
@@ -92,6 +94,7 @@ public class SchematicPrinter {
         final World world = this.minecraft.theWorld;
         final PrinterInteraction interaction = new PrinterInteraction(world, player, this.minecraft.playerController);
         this.carpenters.beginPass(world);
+        this.architectureCraft.beginPass(world);
 
         final Vector3i trans = ClientProxy.playerPosition.clone()
             .sub(this.schematic.position.x, this.schematic.position.y, this.schematic.position.z)
@@ -175,19 +178,20 @@ public class SchematicPrinter {
 
         final boolean architectureShape = Mods.ARCHITECTURE_CRAFT && ArchitectureCraftSupport.isShapeBlock(block);
         final TileEntity architectureTile = architectureShape ? this.schematic.getTileEntity(x, y, z) : null;
-        if (architectureShape && block == placedBlock
-            && ArchitectureCraftSupport
-                .needsHammerTurn(world.getTileEntity(worldX, worldY, worldZ), architectureTile)) {
-            if (ArchitectureCraftPrinter.rotateCapital(interaction, worldX, worldY, worldZ)) {
-                this.retryDelay[x][y][z] = (byte) Math.max(20, ConfigurationHandler.timeout);
+        final TileEntity placedArchitectureTile = architectureShape && block == placedBlock
+            ? world.getTileEntity(worldX, worldY, worldZ)
+            : null;
+        if (architectureShape && ArchitectureCraftSupport.needsHammerTurn(placedArchitectureTile, architectureTile)) {
+            if (this.architectureCraft.rotateCapital(interaction, placedArchitectureTile, worldX, worldY, worldZ)) {
+                this.retryDelay[x][y][z] = (byte) ConfigurationHandler.timeout;
                 return !ConfigurationHandler.placeInstantly;
             }
             return false;
         }
         if (block == placedBlock && BlockToItemStack.matchesMetadata(block, placedMetadata, metadata)
             && BlockToItemStack.matchesPaint(block, world, worldX, worldY, worldZ, this.schematic, x, y, z)
-            && (!architectureShape || ArchitectureCraftSupport
-                .matches(world.getTileEntity(worldX, worldY, worldZ), architectureTile, block))) {
+            && (!architectureShape
+                || ArchitectureCraftSupport.matches(placedArchitectureTile, architectureTile, block))) {
             return false;
         }
 

@@ -273,9 +273,10 @@ public class SchematicPrinter {
         final ForgeDirection[] solidSides = interaction.findSupports(x, y, z);
         final ForgeDirection[] validSides = data == null ? solidSides : data.getValidDirections(solidSides, metadata);
         final boolean slab = block instanceof BlockSlab && itemStack.getItem() instanceof ItemSlab;
+        final boolean halfSlab = slab && !block.isOpaqueCube();
         ForgeDirection direction = ForgeDirection.UNKNOWN;
         for (ForgeDirection support : validSides) {
-            if (PrinterInteraction.canClickForPlacement(
+            if ((!halfSlab || placesSlabHalf(metadata, support)) && PrinterInteraction.canClickForPlacement(
                 world.getBlock(x + support.offsetX, y + support.offsetY, z + support.offsetZ),
                 itemStack,
                 true) && (!slab || !wouldMergeSupportingSlab(world, x, y, z, support, itemStack))) {
@@ -299,8 +300,8 @@ public class SchematicPrinter {
                     : data.getValidDirections(ForgeDirection.VALID_DIRECTIONS, metadata);
             for (ForgeDirection side : valid) {
                 // ItemSlab checks the block across the clicked face before placing into the clicked cell.
-                if (!slab || !BlockToItemStack
-                    .matchesHalfSlab(world, x - side.offsetX, y - side.offsetY, z - side.offsetZ, itemStack)) {
+                if ((!halfSlab || placesSlabHalf(metadata, side)) && (!slab || !BlockToItemStack
+                    .matchesHalfSlab(world, x - side.offsetX, y - side.offsetY, z - side.offsetZ, itemStack))) {
                     direction = side;
                     break;
                 }
@@ -314,6 +315,11 @@ public class SchematicPrinter {
         final int extraClicks = data == null ? 0 : data.getExtraClicks(block, metadata);
         return interaction.selectItem(itemStack)
             && placeAgainstSupport(interaction, x, y, z, direction, adjacent, offsetY, extraClicks);
+    }
+
+    static boolean placesSlabHalf(int metadata, ForgeDirection support) {
+        return support.offsetY == 0
+            || ((metadata & 8) != 0 ? support == ForgeDirection.UP : support == ForgeDirection.DOWN);
     }
 
     private boolean wouldMergeSupportingSlab(World world, int x, int y, int z, ForgeDirection support, ItemStack slab) {

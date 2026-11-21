@@ -29,7 +29,7 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
     public int baseY;
     public int baseZ;
 
-    public short[][][] blocks;
+    public int[][][] blocks;
     public byte[][][] metadata;
     public List<TileEntity> tileEntities;
     public List<Entity> entities;
@@ -41,7 +41,7 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
         this.baseY = baseY;
         this.baseZ = baseZ;
 
-        this.blocks = new short[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
+        this.blocks = new int[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
         this.metadata = new byte[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
         this.tileEntities = new ArrayList<>();
         this.entities = new ArrayList<>();
@@ -50,8 +50,7 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
             for (int y = 0; y < Constants.SchematicChunk.HEIGHT; y++) {
                 for (int z = 0; z < Constants.SchematicChunk.LENGTH; z++) {
                     final Block block = schematic.getBlock(baseX + x, baseY + y, baseZ + z);
-                    final int id = BLOCK_REGISTRY.getId(block);
-                    this.blocks[x][y][z] = (short) id;
+                    this.blocks[x][y][z] = BLOCK_REGISTRY.getId(block);
                     this.metadata[x][y][z] = (byte) schematic.getBlockMetadata(baseX + x, baseY + y, baseZ + z);
                     final TileEntity tileEntity = schematic.getTileEntity(baseX + x, baseY + y, baseZ + z);
                     if (tileEntity != null) {
@@ -66,7 +65,7 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
         for (int x = 0; x < Constants.SchematicChunk.WIDTH; x++) {
             for (int y = 0; y < Constants.SchematicChunk.HEIGHT; y++) {
                 for (int z = 0; z < Constants.SchematicChunk.LENGTH; z++) {
-                    short id = this.blocks[x][y][z];
+                    int id = this.blocks[x][y][z];
                     byte meta = this.metadata[x][y][z];
                     Block block = BLOCK_REGISTRY.getObjectById(id);
 
@@ -86,7 +85,7 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
         this.baseY = buf.readShort();
         this.baseZ = buf.readShort();
 
-        this.blocks = new short[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
+        this.blocks = new int[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
         this.metadata = new byte[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
         this.tileEntities = new ArrayList<>();
         this.entities = new ArrayList<>();
@@ -94,7 +93,7 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
         for (int x = 0; x < Constants.SchematicChunk.WIDTH; x++) {
             for (int y = 0; y < Constants.SchematicChunk.HEIGHT; y++) {
                 for (int z = 0; z < Constants.SchematicChunk.LENGTH; z++) {
-                    this.blocks[x][y][z] = buf.readShort();
+                    this.blocks[x][y][z] = buf.readInt();
                     this.metadata[x][y][z] = buf.readByte();
                 }
             }
@@ -113,10 +112,12 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
         buf.writeShort(this.baseY);
         buf.writeShort(this.baseZ);
 
+        // 32-bit block ids. The previous packet used a signed short, so the client
+        // and the server both have to be on this build before a download will decode.
         for (int x = 0; x < Constants.SchematicChunk.WIDTH; x++) {
             for (int y = 0; y < Constants.SchematicChunk.HEIGHT; y++) {
                 for (int z = 0; z < Constants.SchematicChunk.LENGTH; z++) {
-                    buf.writeShort(this.blocks[x][y][z]);
+                    buf.writeInt(this.blocks[x][y][z]);
                     buf.writeByte(this.metadata[x][y][z]);
                 }
             }

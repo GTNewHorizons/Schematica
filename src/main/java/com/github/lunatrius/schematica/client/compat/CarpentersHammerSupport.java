@@ -1,6 +1,5 @@
 package com.github.lunatrius.schematica.client.compat;
 
-import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -58,7 +57,6 @@ import com.github.lunatrius.schematica.client.world.SchematicWorld;
 
 public final class CarpentersHammerSupport {
 
-    private static final Click[] SHAPE_CLICKS = { Click.LEFT, Click.RIGHT };
     private static final Slab SLAB = new Slab();
     private static final Ladder LADDER = new Ladder();
     private static final Torch TORCH = new Torch();
@@ -67,62 +65,55 @@ public final class CarpentersHammerSupport {
     private static final Button BUTTON = new Button();
     private static final Lever LEVER = new Lever();
 
-    // BlockCarpentersSlope's left click uses the UP row of Slope.ROTATION_Y.
-    private static final int[] SLOPE_ROTATIONS = { 3, 2, 0, 1, 7, 6, 4, 5, 11, 10, 8, 9, 15, 14, 12, 13, 19, 18, 16, 17,
-        23, 22, 20, 21, 27, 26, 24, 25, 31, 30, 28, 29, 35, 34, 32, 33, 39, 38, 36, 37, 43, 42, 40, 41, 44, 45, 49, 48,
-        46, 47, 51, 50, 55, 54, 52, 53, 59, 58, 56, 57, 60, 64, 63, 61, 62 };
-
     private static final BlockSettings NO_SETTINGS = new BlockSettings(Block.class);
     // Settings are ordered by the sequence in which the hammer should adjust them.
     private static final BlockSettings[] BLOCK_SETTINGS = {
         new BlockSettings(
             BlockCarpentersGarageDoor.class,
-            shortestCycle(GarageDoor.INSTANCE::getType, BlockCarpentersGarageDoor.type.length),
+            cycle(GarageDoor.INSTANCE::getType, BlockCarpentersGarageDoor.type.length),
             toggle(GarageDoor.INSTANCE::getRigidity, Click.SNEAK_RIGHT)),
         new BlockSettings(
             BlockCarpentersBarrier.class,
             new Setting<>(Barrier::getType, CarpentersHammerSupport::fenceClick),
-            toggle(Barrier::getPost, Click.LEFT)),
+            toggle(Barrier::getPost, Click.MANUAL)),
         new BlockSettings(BlockCarpentersGate.class, new Setting<>(Gate::getType, CarpentersHammerSupport::fenceClick)),
         new BlockSettings(
             BlockCarpentersDoor.class,
-            forwardCycle(Hinge::getType, BlockCarpentersDoor.type.length),
-            toggle(Hinge::getHinge, Click.LEFT)),
+            cycle(Hinge::getType, BlockCarpentersDoor.type.length),
+            toggle(Hinge::getHinge, Click.MANUAL)),
         new BlockSettings(
             BlockCarpentersHatch.class,
-            forwardCycle(Hatch::getType, Hatch.TYPE_PANEL + 1),
+            cycle(Hatch::getType, Hatch.TYPE_PANEL + 1),
             toggle(Hatch::getRigidity, Click.SNEAK_RIGHT),
-            toggle(Hatch::getDir, Click.LEFT)),
-        new BlockSettings(
-            BlockCarpentersLadder.class,
-            shortestCycle(LADDER::getType, BlockCarpentersLadder.type.length)),
-        new BlockSettings(BlockCarpentersTorch.class, forwardCycle(TORCH::getType, BlockCarpentersTorch.type.length)),
+            toggle(Hatch::getDir, Click.MANUAL)),
+        new BlockSettings(BlockCarpentersLadder.class, cycle(LADDER::getType, BlockCarpentersLadder.type.length)),
+        new BlockSettings(BlockCarpentersTorch.class, cycle(TORCH::getType, BlockCarpentersTorch.type.length)),
         new BlockSettings(BlockCarpentersBed.class, decoration("bed")),
         new BlockSettings(BlockCarpentersFlowerPot.class, decoration("flowerpot")),
         new BlockSettings(
             BlockCarpentersDaylightSensor.class,
-            forwardCycle(SENSOR::getSensitivity, 3),
-            toggle(SENSOR::getPolarity, Click.LEFT)),
+            cycle(SENSOR::getSensitivity, 3),
+            toggle(SENSOR::getPolarity, Click.MANUAL)),
         new BlockSettings(
             BlockCarpentersPressurePlate.class,
-            forwardCycle(PRESSURE_PLATE::getTriggerEntity, 4),
-            toggle(PRESSURE_PLATE::getPolarity, Click.LEFT)),
-        new BlockSettings(BlockCarpentersButton.class, toggle(BUTTON::getPolarity, Click.LEFT)),
+            cycle(PRESSURE_PLATE::getTriggerEntity, 4),
+            toggle(PRESSURE_PLATE::getPolarity, Click.MANUAL)),
+        new BlockSettings(BlockCarpentersButton.class, toggle(BUTTON::getPolarity, Click.MANUAL)),
+        new BlockSettings(BlockCarpentersLever.class, toggle(LEVER::getPolarity, Click.MANUAL)),
+        new BlockSettings(
+            BlockCarpentersSafe.class,
+            toggle(Safe::isLocked, Click.SNEAK_RIGHT),
+            cycle(Safe::getAutoPerm, 4)) };
+
+    private CarpentersHammerSupport() {}
+
+    static boolean matchesSettings(Block block, TEBase expected, TEBase actual) {
         if (block instanceof BlockCarpentersTorch && TORCH.getDirection(actual) != TORCH.getDirection(expected)) {
             return false;
         }
         if (block instanceof BlockCarpentersLadder && LADDER.getDirection(actual) != LADDER.getDirection(expected)) {
             return false;
         }
-        new BlockSettings(BlockCarpentersLever.class, toggle(LEVER::getPolarity, Click.LEFT)),
-        new BlockSettings(
-            BlockCarpentersSafe.class,
-            toggle(Safe::isLocked, Click.SNEAK_RIGHT),
-            forwardCycle(Safe::getAutoPerm, 4)) };
-
-    private CarpentersHammerSupport() {}
-
-    static boolean matchesSettings(Block block, TEBase expected, TEBase actual) {
         return settingsFor(block).findClick(expected, actual) == null;
     }
 
@@ -171,29 +162,11 @@ public final class CarpentersHammerSupport {
                 expected.getData(),
                 actual.getData(),
                 Stairs.stairsList.length,
-                id -> (id & ~3) | ((id + 1) & 3),
                 CarpentersHammerSupport::nextStairShape);
         } else if (block instanceof BlockCarpentersSlope) {
-            click = shapeClick(
-                expected.getData(),
-                actual.getData(),
-                SLOPE_ROTATIONS.length,
-                id -> SLOPE_ROTATIONS[id],
-                id -> {
-                    final Slope slope = Slope.getSlopeById(id);
-                    return slope.slopeType.getNextSlopeType(slope).slopeID;
-                });
+            click = canReshapeSlope(expected.getData(), actual.getData()) ? Click.RIGHT : null;
         }
-        if (click == null) {
-            return null;
-        }
-        if (click == Click.LEFT && block instanceof BlockCarpentersHatch
-            && !block.canPlaceBlockOnSide(
-                actual.getWorldObj(),
-                actual.xCoord,
-                actual.yCoord,
-                actual.zCoord,
-                Hatch.getDir(expected) + 2)) {
+        if (click == null || click == Click.MANUAL) {
             return null;
         }
 
@@ -223,7 +196,7 @@ public final class CarpentersHammerSupport {
                 return Collections.emptyList();
             }
             TEBase activation = actual;
-            if (click != Click.LEFT && door.isOpen(actual)) {
+            if (door.isOpen(actual)) {
                 // Carpenter's Blocks redirects both right-click paths to the bottom of an open door.
                 activation = door.getBottommost(world, actual.xCoord, actual.yCoord, actual.zCoord);
                 if (activation == null || door.getDirection(activation) != door.getDirection(actual)
@@ -270,12 +243,8 @@ public final class CarpentersHammerSupport {
         return new Setting<>(read, (expected, actual) -> expected.equals(actual) ? null : click);
     }
 
-    private static Setting<Integer> forwardCycle(Function<TEBase, Integer> read, int variants) {
+    private static Setting<Integer> cycle(Function<TEBase, Integer> read, int variants) {
         return new Setting<>(read, (expected, actual) -> cycle(expected, actual, variants));
-    }
-
-    private static Setting<Integer> shortestCycle(Function<TEBase, Integer> read, int variants) {
-        return new Setting<>(read, (expected, actual) -> bidirectionalCycle(expected, actual, variants));
     }
 
     private static Setting<String> decoration(String designType) {
@@ -302,14 +271,6 @@ public final class CarpentersHammerSupport {
             Click.RIGHT);
     }
 
-    private static Click bidirectionalCycle(int expected, int actual, int variants) {
-        if (cycle(expected, actual, variants) == null) {
-            return null;
-        }
-        final int forward = Math.floorMod(expected - actual, variants);
-        return forward < variants - forward ? Click.LEFT : Click.RIGHT;
-    }
-
     private static Click toggle(boolean different, Click click) {
         return different ? click : null;
     }
@@ -328,26 +289,29 @@ public final class CarpentersHammerSupport {
         };
     }
 
-    private static Click shapeClick(int expected, int actual, int variants, IntUnaryOperator turn,
-        IntUnaryOperator reshape) {
+    static boolean canReshapeStair(int expected, int actual) {
+        return shapeClick(expected, actual, Stairs.stairsList.length, CarpentersHammerSupport::nextStairShape) != null;
+    }
+
+    static boolean canReshapeSlope(int expected, int actual) {
+        return shapeClick(expected, actual, Slope.ID_PRISM_WEDGE_POS_E + 1, id -> {
+            final Slope slope = Slope.getSlopeById(id);
+            return slope.slopeType.getNextSlopeType(slope).slopeID;
+        }) != null;
+    }
+
+    private static Click shapeClick(int expected, int actual, int variants, IntUnaryOperator reshape) {
         if (expected == actual || !validIndex(expected, variants) || !validIndex(actual, variants)) {
             return null;
         }
-        final Click[] firstClicks = new Click[variants];
-        final ArrayDeque<Integer> remaining = new ArrayDeque<>();
-        remaining.add(actual);
-        while (!remaining.isEmpty()) {
-            final int current = remaining.remove();
-            for (Click click : SHAPE_CLICKS) {
-                final int next = (click == Click.LEFT ? turn : reshape).applyAsInt(current);
-                if (next == actual || firstClicks[next] != null) {
-                    continue;
-                }
-                firstClicks[next] = current == actual ? click : firstClicks[current];
-                if (next == expected) {
-                    return firstClicks[next];
-                }
-                remaining.add(next);
+        int next = actual;
+        for (int step = 0; step < variants; step++) {
+            next = reshape.applyAsInt(next);
+            if (next == expected) {
+                return Click.RIGHT;
+            }
+            if (next == actual) {
+                break;
             }
         }
         return null;
@@ -418,7 +382,7 @@ public final class CarpentersHammerSupport {
     }
 
     public enum Click {
-        LEFT,
+        MANUAL,
         RIGHT,
         SNEAK_RIGHT
     }

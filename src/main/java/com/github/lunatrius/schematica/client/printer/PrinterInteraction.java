@@ -13,7 +13,6 @@ import net.minecraft.init.Items;
 import net.minecraft.item.ItemBucket;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.C03PacketPlayer.C05PacketPlayerLook;
-import net.minecraft.network.play.client.C07PacketPlayerDigging;
 import net.minecraft.network.play.client.C0BPacketEntityAction;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
@@ -166,25 +165,6 @@ final class PrinterInteraction {
             this.player.swingItem();
         }
         return success;
-    }
-
-    boolean tapWithoutMining(int x, int y, int z, int side) {
-        final ItemStack held = this.player.getHeldItem();
-        final Block block = this.world.getBlock(x, y, z);
-        if (!isStillHolding(held) || block.getPlayerRelativeBlockHardness(this.player, this.world, x, y, z) >= 0) {
-            return false;
-        }
-        this.controller.syncCurrentPlayItem();
-        if (ForgeEventFactory.onPlayerInteract(this.player, Action.LEFT_CLICK_BLOCK, x, y, z, side, this.world)
-            .isCanceled() || held != this.player.getHeldItem()
-            || this.world.getBlock(x, y, z) != block) {
-            return false;
-        }
-        // Send the initial hit and cancel mining so the mod can handle the tool without client-side block removal.
-        this.player.sendQueue.addToSendQueue(new C07PacketPlayerDigging(0, x, y, z, side));
-        this.player.sendQueue.addToSendQueue(new C07PacketPlayerDigging(1, x, y, z, side));
-        this.player.swingItem();
-        return true;
     }
 
     private boolean isStillHolding(ItemStack item) {

@@ -16,11 +16,16 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.carpentersblocks.block.BlockCarpentersBlock;
 import com.carpentersblocks.block.BlockCarpentersGarageDoor;
+import com.carpentersblocks.block.BlockCarpentersLadder;
 import com.carpentersblocks.block.BlockCarpentersSlope;
 import com.carpentersblocks.block.BlockCarpentersStairs;
+import com.carpentersblocks.block.BlockCarpentersTorch;
 import com.carpentersblocks.block.BlockCoverable;
 import com.carpentersblocks.data.GarageDoor;
+import com.carpentersblocks.data.Ladder;
+import com.carpentersblocks.data.Slope;
 import com.carpentersblocks.data.Stairs;
+import com.carpentersblocks.data.Torch;
 import com.carpentersblocks.tileentity.TEBase;
 import com.carpentersblocks.util.BlockProperties;
 import com.carpentersblocks.util.protection.PlayerPermissions;
@@ -34,6 +39,8 @@ public final class CarpentersBlocksSupport {
     private static final int BASE = 6;
     private static final byte[][] SURFACE_ATTRIBUTES = { TEBase.ATTR_COVER, TEBase.ATTR_DYE, TEBase.ATTR_OVERLAY };
     private static final int[] TOP_BOTTOM_FACING = { 0, 3, 1, 2 };
+    private static final Ladder LADDER = new Ladder();
+    private static final Torch TORCH = new Torch();
 
     private CarpentersBlocksSupport() {}
 
@@ -51,6 +58,77 @@ public final class CarpentersBlocksSupport {
 
     public static boolean isGarageDoorHost(TileEntity tile) {
         return tile instanceof TEBase carpenter && GarageDoor.INSTANCE.isHost(carpenter);
+    }
+
+    public static ForgeDirection getAttachmentDirection(Block block, TileEntity tile) {
+        if (block instanceof BlockCarpentersLadder) {
+            return tile instanceof TEBase carpenter ? LADDER.getDirection(carpenter) : ForgeDirection.UNKNOWN;
+        }
+        if (block instanceof BlockCarpentersTorch) {
+            return tile instanceof TEBase carpenter ? TORCH.getDirection(carpenter) : ForgeDirection.UNKNOWN;
+        }
+        return null;
+    }
+
+    public static boolean isFreestandingLadder(Block block, ForgeDirection direction) {
+        return block instanceof BlockCarpentersLadder && direction.offsetY != 0;
+    }
+
+    public static Float getWedgeYaw(Block block, TileEntity tile, ItemStack item) {
+        if (!(block instanceof BlockCarpentersSlope) || !(tile instanceof TEBase slope)
+            || item.getItemDamage() != BlockCarpentersSlope.META_WEDGE) {
+            return null;
+        }
+        return switch (slope.getData()) {
+            case Slope.ID_WEDGE_NEG_N, Slope.ID_WEDGE_POS_N -> 0f;
+            case Slope.ID_WEDGE_NEG_E, Slope.ID_WEDGE_POS_E -> 90f;
+            case Slope.ID_WEDGE_NEG_S, Slope.ID_WEDGE_POS_S -> 180f;
+            case Slope.ID_WEDGE_NEG_W, Slope.ID_WEDGE_POS_W -> 270f;
+            default -> null;
+        };
+    }
+
+    public static ForgeDirection getWedgeFace(TileEntity tile) {
+        return ((TEBase) tile).getData() <= Slope.ID_WEDGE_NEG_E ? ForgeDirection.DOWN : ForgeDirection.UP;
+    }
+
+    public static ForgeDirection getWedgeWallFace(TileEntity tile) {
+        return ForgeDirection.getOrientation(2 + (((TEBase) tile).getData() & 3));
+    }
+
+    public static boolean canReshapeOppositeWedge(TileEntity tile) {
+        final int expected = ((TEBase) tile).getData();
+        return CarpentersHammerSupport.canReshapeSlope(expected, expected ^ 12);
+    }
+
+    public static boolean isSideWedge(Block block, TileEntity tile, ItemStack item) {
+        return block instanceof BlockCarpentersSlope && tile instanceof TEBase slope
+            && item.getItemDamage() == BlockCarpentersSlope.META_WEDGE
+            && slope.getData() >= Slope.ID_WEDGE_SE
+            && slope.getData() <= Slope.ID_WEDGE_SW;
+    }
+
+    public static double getSideWedgeHit(TileEntity tile, ForgeDirection face) {
+        final int expected = ((TEBase) tile).getData();
+        final int near = switch (face) {
+            case NORTH -> Slope.ID_WEDGE_NW;
+            case SOUTH -> Slope.ID_WEDGE_SE;
+            case WEST -> Slope.ID_WEDGE_SW;
+            case EAST -> Slope.ID_WEDGE_NE;
+            default -> -1;
+        };
+        final int far = switch (face) {
+            case NORTH -> Slope.ID_WEDGE_NE;
+            case SOUTH -> Slope.ID_WEDGE_SW;
+            case WEST -> Slope.ID_WEDGE_NW;
+            case EAST -> Slope.ID_WEDGE_SE;
+            default -> -1;
+        };
+        if (expected != near && expected != far) {
+            return 0;
+        }
+        final boolean reversed = face == ForgeDirection.NORTH || face == ForgeDirection.EAST;
+        return (expected == near) != reversed ? 0.125 : 0.875;
     }
 
     public static boolean canConfigure(TileEntity tile, EntityPlayer player) {
@@ -178,15 +256,16 @@ public final class CarpentersBlocksSupport {
     }
 
     public static boolean matchesStairPlacement(TileEntity tile, Block block, World world, int x, int y, int z,
-        int side, float hitX, float hitY, float hitZ, EntityPlayer player) {
+        int side, float hitX, float hitY, float hitZ, float yaw, boolean allowReshape) {
         if (!(tile instanceof TEBase expected)) {
             return false;
         }
         final int metadata = block.onBlockPlaced(world, x, y, z, side, hitX, hitY, hitZ, 0);
-        final int facing = MathHelper.floor_double(player.rotationYaw * 4.0F / 360.0F + 0.5D) & 3;
+        final int facing = MathHelper.floor_double(yaw * 4.0F / 360.0F + 0.5D) & 3;
         final int data = metadata < 12 ? metadata
             : (metadata == 12 ? Stairs.ID_NORMAL_NEG_N : Stairs.ID_NORMAL_POS_N) + TOP_BOTTOM_FACING[facing];
-        return data == expected.getData();
+        return data == expected.getData()
+            || (allowReshape && CarpentersHammerSupport.canReshapeStair(expected.getData(), data));
     }
 
     public static Interaction findAttachment(Block block, TileEntity target, TileEntity placed, EntityPlayer player,

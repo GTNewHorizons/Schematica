@@ -1,9 +1,7 @@
 package com.github.lunatrius.schematica.client.printer;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockHopper;
 import net.minecraft.block.BlockPistonBase;
-import net.minecraft.block.BlockRotatedPillar;
 import net.minecraft.block.BlockSlab;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
@@ -276,7 +274,7 @@ public class SchematicPrinter {
             return false;
         }
 
-        PlacementData data = PlacementRegistry.INSTANCE.getPlacementData(block, itemStack);
+        final PlacementData data = PlacementRegistry.INSTANCE.getPlacementData(block, itemStack);
 
         if (!isValidOrientation(interaction.player, x, y, z, data, metadata)) {
             return false;
@@ -301,7 +299,7 @@ public class SchematicPrinter {
         if (!adjacent) {
             final boolean needsMappedSupport = data != null && data.type == PlacementData.PlacementType.BLOCK
                 && !data.mapping.isEmpty()
-                && !(block instanceof BlockRotatedPillar || block instanceof BlockHopper);
+                && !data.allowsDirectClick();
             if ((ConfigurationHandler.placeAdjacent && solidSides.length == 0)
                 || (needsMappedSupport && validSides.length == 0)
                 || !(itemStack.getItem() instanceof ItemBlock)) {

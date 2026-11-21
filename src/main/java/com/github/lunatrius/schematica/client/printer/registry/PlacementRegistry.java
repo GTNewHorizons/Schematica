@@ -22,6 +22,8 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemSlab;
 import net.minecraft.item.ItemStack;
 
+import cpw.mods.fml.common.registry.GameRegistry;
+
 public class PlacementRegistry {
 
     public static final PlacementRegistry INSTANCE = new PlacementRegistry();
@@ -56,7 +58,8 @@ public class PlacementRegistry {
             new PlacementData(PlacementData.PlacementType.PLAYER, -1, -1, 3, 2, 5, 4));
         addPlacementMapping(
             BlockHopper.class,
-            new PlacementData(PlacementData.PlacementType.BLOCK, 0, 1, 2, 3, 4, 5).setMaskMeta(0x7));
+            new PlacementData(PlacementData.PlacementType.BLOCK, 0, 1, 2, 3, 4, 5).setMaskMeta(0x7)
+                .allowDirectClick());
         addPlacementMapping(
             BlockPistonBase.class,
             new PlacementData(PlacementData.PlacementType.PISTON, 0, 1, 2, 3, 4, 5).setMaskMeta(0x7));
@@ -65,7 +68,8 @@ public class PlacementRegistry {
             new PlacementData(PlacementData.PlacementType.PLAYER, -1, -1, 0, 2, 3, 1).setMaskMeta(0xF));
         addPlacementMapping(
             BlockRotatedPillar.class,
-            new PlacementData(PlacementData.PlacementType.BLOCK, 0, 0, 8, 8, 4, 4).setMaskMeta(0xC));
+            new PlacementData(PlacementData.PlacementType.BLOCK, 0, 0, 8, 8, 4, 4).setMaskMeta(0xC)
+                .allowDirectClick());
         addPlacementMapping(
             BlockStairs.class,
             new PlacementData(PlacementData.PlacementType.PLAYER, -1, -1, 3, 2, 1, 0).setOffset(0x4, 0.0f, 1.0f)
@@ -105,6 +109,9 @@ public class PlacementRegistry {
         addPlacementMapping(Blocks.stained_hardened_clay, new PlacementData(PlacementData.PlacementType.BLOCK));
         addPlacementMapping(Blocks.carpet, new PlacementData(PlacementData.PlacementType.BLOCK));
         addPlacementMapping(Blocks.stained_glass_pane, new PlacementData(PlacementData.PlacementType.BLOCK));
+        addPlacementMapping(
+            GameRegistry.findBlock("etfuturum", "chain"),
+            new PlacementData(PlacementData.PlacementType.BLOCK, 0, 0, 2, 2, 1, 1).allowDirectClick());
         addPlacementMapping(
             Items.wooden_door,
             new PlacementData(PlacementData.PlacementType.PLAYER, -1, -1, 3, 1, 2, 0).setMaskMeta(0x7));

@@ -24,6 +24,7 @@ public class PlacementData {
     public float offsetHighY = 1.0f;
     public int maskMeta = 0xF;
     public final Map<ForgeDirection, Integer> mapping = new HashMap<>();
+    private boolean directClick;
     private IExtraClick extraClick;
 
     public PlacementData(PlacementType type, int... metadata) {
@@ -50,6 +51,16 @@ public class PlacementData {
 
     public float getOffsetFromMetadata(int metadata) {
         return (metadata & this.maskOffset) == 0 ? this.offsetLowY : this.offsetHighY;
+    }
+
+    /** Lets a mapped face set orientation through a click on the target cell itself. */
+    public PlacementData allowDirectClick() {
+        this.directClick = true;
+        return this;
+    }
+
+    public boolean allowsDirectClick() {
+        return this.directClick;
     }
 
     public ForgeDirection[] getValidDirections(ForgeDirection[] solidSides, int metadata) {

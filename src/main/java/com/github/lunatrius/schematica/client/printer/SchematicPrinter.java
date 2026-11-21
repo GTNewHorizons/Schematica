@@ -298,12 +298,6 @@ public class SchematicPrinter {
 
         final boolean adjacent = direction != ForgeDirection.UNKNOWN;
         if (!adjacent) {
-            if (halfSlab && (metadata & 8) != 0
-                && world.getBlock(x, y, z) == Blocks.snow_layer
-                && (world.getBlockMetadata(x, y, z) & 7) == 0) {
-                // ItemBlock forces an upward placement click when replacing a snow layer.
-                return false;
-            }
             final boolean needsMappedSupport = data != null && data.type == PlacementData.PlacementType.BLOCK
                 && !data.mapping.isEmpty()
                 && !(block instanceof BlockRotatedPillar || block instanceof BlockHopper);
@@ -315,10 +309,14 @@ public class SchematicPrinter {
             final ForgeDirection[] valid = needsMappedSupport ? validSides
                 : data == null ? ForgeDirection.VALID_DIRECTIONS
                     : data.getValidDirections(ForgeDirection.VALID_DIRECTIONS, metadata);
+            // ItemBlock forces an upward click when replacing a single layer of snow.
+            final boolean snowForcesUp = world.getBlock(x, y, z) == Blocks.snow_layer
+                && (world.getBlockMetadata(x, y, z) & 7) == 0;
             for (ForgeDirection side : valid) {
                 // ItemSlab checks the block across the clicked face before placing into the clicked cell.
-                if ((!halfSlab || placesSlabHalf(metadata, side)) && (!slab || !BlockToItemStack
-                    .matchesHalfSlab(world, x - side.offsetX, y - side.offsetY, z - side.offsetZ, itemStack))) {
+                if ((!snowForcesUp || side == ForgeDirection.DOWN) && (!halfSlab || placesSlabHalf(metadata, side))
+                    && (!slab || !BlockToItemStack
+                        .matchesHalfSlab(world, x - side.offsetX, y - side.offsetY, z - side.offsetZ, itemStack))) {
                     direction = side;
                     break;
                 }
@@ -394,6 +392,7 @@ public class SchematicPrinter {
         final ItemStack itemStack = player.getCurrentEquippedItem();
 
         if (!this.minecraft.playerController.isInCreativeMode() && itemStack != null
+            && !(itemStack.getItem() instanceof ItemSlab)
             && itemStack.stackSize <= extraClicks) {
             return false;
         }
@@ -410,11 +409,16 @@ public class SchematicPrinter {
 
         final boolean success = interaction.withSneaking(true, () -> {
             boolean placed = interaction.place(itemStack, clickedX, clickedY, clickedZ, side, hit);
+            if (placed && extraClicks > 0 && itemStack.getItem() instanceof ItemSlab) {
+                // The existing-half path can finish on a later pass when the remaining slab is in another slot.
+                if (itemStack.stackSize > 0
+                    && BlockToItemStack.matchesHalfSlab(interaction.world, x, y, z, itemStack)) {
+                    mergeSlab(interaction, x, y, z, itemStack);
+                }
+                return true;
+            }
             for (int i = 0; placed && i < extraClicks; i++) {
-                placed = itemStack.getItem() instanceof ItemSlab
-                    ? BlockToItemStack.matchesHalfSlab(interaction.world, x, y, z, itemStack)
-                        && mergeSlab(interaction, x, y, z, itemStack)
-                    : interaction.place(itemStack, clickedX, clickedY, clickedZ, side, hit);
+                placed = interaction.place(itemStack, clickedX, clickedY, clickedZ, side, hit);
             }
             return placed;
         });

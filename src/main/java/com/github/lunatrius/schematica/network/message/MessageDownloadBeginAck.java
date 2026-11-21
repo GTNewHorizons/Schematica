@@ -11,31 +11,29 @@ import io.netty.buffer.ByteBuf;
 
 public class MessageDownloadBeginAck implements IMessage, IMessageHandler<MessageDownloadBeginAck, IMessage> {
 
-    private boolean supportsExtendedBlockData;
+    private int protocolVersion;
 
     public MessageDownloadBeginAck() {}
 
-    MessageDownloadBeginAck(boolean supportsExtendedBlockData) {
-        this.supportsExtendedBlockData = supportsExtendedBlockData;
+    MessageDownloadBeginAck(int protocolVersion) {
+        this.protocolVersion = protocolVersion;
     }
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        // Older clients acknowledge with an empty payload.
-        this.supportsExtendedBlockData = buf.readableBytes() == 1 && buf.readUnsignedByte() == 1;
+        // The original acknowledgment has no payload.
+        this.protocolVersion = buf.readableBytes() == 1 ? buf.readUnsignedByte() : 0;
     }
 
     @Override
     public void toBytes(ByteBuf buf) {
-        if (this.supportsExtendedBlockData) {
-            buf.writeByte(1);
-        }
+        buf.writeByte(this.protocolVersion);
     }
 
     @Override
     public IMessage onMessage(MessageDownloadBeginAck message, MessageContext ctx) {
         EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-        DownloadHandler.INSTANCE.confirmBegin(player, message.supportsExtendedBlockData);
+        DownloadHandler.INSTANCE.confirmBegin(player, message.protocolVersion);
 
         return null;
     }

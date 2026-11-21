@@ -22,9 +22,12 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 
 public class DownloadHandler {
 
+    public static final int PROTOCOL_VERSION = 2;
     public static final DownloadHandler INSTANCE = new DownloadHandler();
 
-    public ISchematic schematic = null;
+    // Version advertised by the connected server via MessageCapabilities.
+    public int serverProtocolVersion;
+    public ISchematic schematic;
 
     private final Map<EntityPlayerMP, SchematicTransfer> transferMap = new LinkedHashMap<>();
 
@@ -50,10 +53,10 @@ public class DownloadHandler {
         this.transferMap.remove(player);
     }
 
-    public synchronized void confirmBegin(EntityPlayerMP player, boolean supportsExtendedBlockData) {
+    public synchronized void confirmBegin(EntityPlayerMP player, int protocolVersion) {
         final SchematicTransfer transfer = this.transferMap.get(player);
         if (transfer != null && transfer.state == SchematicTransfer.State.BEGIN) {
-            transfer.supportsExtendedBlockData = supportsExtendedBlockData;
+            transfer.clientProtocolVersion = protocolVersion;
             transfer.setState(SchematicTransfer.State.CHUNK_WAIT);
         }
     }
@@ -102,7 +105,7 @@ public class DownloadHandler {
             transfer.setState(SchematicTransfer.State.BEGIN);
             sendBegin(player, transfer);
         } else if (transfer.state == SchematicTransfer.State.CHUNK_WAIT) {
-            if (transfer.requiresExtendedBlockData && !transfer.supportsExtendedBlockData) {
+            if (transfer.clientProtocolVersion != PROTOCOL_VERSION) {
                 // Translate on the server because old clients do not have this key.
                 player.addChatMessage(
                     new ChatComponentText(
@@ -121,7 +124,7 @@ public class DownloadHandler {
     }
 
     private void sendBegin(EntityPlayerMP player, SchematicTransfer transfer) {
-        MessageDownloadBegin message = new MessageDownloadBegin(transfer.schematic, transfer.requiresExtendedBlockData);
+        MessageDownloadBegin message = new MessageDownloadBegin(transfer.schematic);
         PacketHandler.INSTANCE.sendTo(message, player);
     }
 

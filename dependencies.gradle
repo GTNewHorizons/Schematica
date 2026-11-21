@@ -23,4 +23,6 @@ dependencies {
     runtimeOnlyNonPublishable('ganymedes01.etfuturum:Et-Futurum-Requiem:2.6.65-GTNH:dev') { transitive = false }
     runtimeOnlyNonPublishable('com.github.GTNewHorizons:GTNHLib:0.11.48:dev') { transitive = false }
     runtimeOnlyNonPublishable('io.github.legacymoddingmc:unimixins:0.3.1:dev') { transitive = false }
+
+    testImplementation('junit:junit:4.13.2')
 }

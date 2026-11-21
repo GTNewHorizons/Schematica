@@ -158,4 +158,5 @@ schematica.command.download.usage=/schematicaDownload <name>
 schematica.command.download.started=Started downloading %s...
 schematica.command.download.downloadSucceeded=Successfully downloaded %s.
 schematica.command.download.downloadFail=Download failed.
-schematica.command.download.requiresUpdate=Update Schematica to download %s. This schematic contains block data your client cannot preserve.
+schematica.command.download.requiresUpdate=Update Schematica to download %s. Your client uses a different download format.
+schematica.command.download.serverRequiresUpdate=The server uses a different Schematica download format. Update the server to download schematics.

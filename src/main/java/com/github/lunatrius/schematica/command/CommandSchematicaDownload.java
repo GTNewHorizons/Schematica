@@ -16,11 +16,9 @@ import org.apache.commons.io.FilenameUtils;
 import com.github.lunatrius.schematica.FileFilterSchematic;
 import com.github.lunatrius.schematica.Schematica;
 import com.github.lunatrius.schematica.api.ISchematic;
-import com.github.lunatrius.schematica.handler.ConfigurationHandler;
 import com.github.lunatrius.schematica.handler.DownloadHandler;
 import com.github.lunatrius.schematica.reference.Names;
 import com.github.lunatrius.schematica.reference.Reference;
-import com.github.lunatrius.schematica.util.FileUtils;
 import com.github.lunatrius.schematica.world.schematic.SchematicFormat;
 
 public class CommandSchematicaDownload extends CommandSchematicaBase {
@@ -69,20 +67,15 @@ public class CommandSchematicaDownload extends CommandSchematicaBase {
             throw new CommandException(Names.Command.Download.Message.PLAYERS_ONLY);
         }
 
-        final String filename;
-        if (ConfigurationHandler.useSchematicplusFormat) {
-            filename = args[0] + ".schemplus";
-        } else {
-            filename = args[0] + ".schematic";
-        }
-
         final File directory = Schematica.proxy.getPlayerSchematicDirectory(player, true);
-        if (!FileUtils.contains(directory, filename)) {
-            Reference.logger.error("{} has tried to download the file {}", player.getDisplayName(), filename);
+        final File schematicFile = FileFilterSchematic.resolve(directory, args[0]);
+        if (schematicFile == null) {
+            Reference.logger.error("{} has tried to download the file {}", player.getDisplayName(), args[0]);
             throw new CommandException(Names.Command.Download.Message.DOWNLOAD_FAILED);
         }
 
-        final ISchematic schematic = SchematicFormat.readFromFile(directory, filename);
+        final String filename = schematicFile.getName();
+        final ISchematic schematic = SchematicFormat.readFromFile(schematicFile);
 
         if (schematic != null) {
             DownloadHandler.INSTANCE.startDownload(player, schematic, filename);

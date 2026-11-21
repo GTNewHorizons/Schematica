@@ -20,9 +20,9 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.github.lunatrius.core.util.vector.Vector3f;
 import com.github.lunatrius.core.util.vector.Vector3i;
+import com.github.lunatrius.schematica.FileFilterSchematic;
 import com.github.lunatrius.schematica.api.ISchematic;
 import com.github.lunatrius.schematica.client.compat.ArchitectureCraftSupport;
-import com.github.lunatrius.schematica.handler.ConfigurationHandler;
 import com.github.lunatrius.schematica.reference.Mods;
 import com.github.lunatrius.schematica.reference.Reference;
 import com.github.lunatrius.schematica.world.chunk.ChunkProviderSchematic;
@@ -73,11 +73,7 @@ public class SchematicWorld extends World {
 
     public SchematicWorld(ISchematic schematic, String filename) {
         this(schematic);
-        if (ConfigurationHandler.useSchematicplusFormat) {
-            this.name = filename.replace(".schemplus", "");
-        } else {
-            this.name = filename.replace(".schematic", "");
-        }
+        this.name = FileFilterSchematic.stripExtension(filename);
     }
 
     @Override

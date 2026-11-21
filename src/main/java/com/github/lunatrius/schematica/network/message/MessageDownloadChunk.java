@@ -31,11 +31,10 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
     public int baseY;
     public int baseZ;
 
-    public short[][][] blocks;
-    public byte[][][] metadata;
-    private byte[] highMetadata;
-    public List<TileEntity> tileEntities;
-    public List<Entity> entities;
+    private final int[] blockIds = new int[CELL_COUNT];
+    private final char[] metadata = new char[CELL_COUNT];
+    private List<TileEntity> tileEntities = new ArrayList<>();
+    private List<Entity> entities = new ArrayList<>();
 
     public MessageDownloadChunk() {}
 
@@ -44,27 +43,13 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
         this.baseY = baseY;
         this.baseZ = baseZ;
 
-        this.blocks = new short[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
-        this.metadata = new byte[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
-        this.tileEntities = new ArrayList<>();
-        this.entities = new ArrayList<>();
-
         int index = 0;
         for (int x = 0; x < Constants.SchematicChunk.WIDTH; x++) {
             for (int y = 0; y < Constants.SchematicChunk.HEIGHT; y++) {
                 for (int z = 0; z < Constants.SchematicChunk.LENGTH; z++, index++) {
                     final Block block = schematic.getBlock(baseX + x, baseY + y, baseZ + z);
-                    final int id = BLOCK_REGISTRY.getId(block);
-                    this.blocks[x][y][z] = (short) id;
-                    final int metadata = schematic.getBlockMetadata(baseX + x, baseY + y, baseZ + z);
-                    this.metadata[x][y][z] = (byte) metadata;
-                    final byte high = (byte) (metadata >>> 8);
-                    if (high != 0) {
-                        if (this.highMetadata == null) {
-                            this.highMetadata = new byte[CELL_COUNT];
-                        }
-                        this.highMetadata[index] = high;
-                    }
+                    this.blockIds[index] = BLOCK_REGISTRY.getId(block);
+                    this.metadata[index] = (char) schematic.getBlockMetadata(baseX + x, baseY + y, baseZ + z);
                     final TileEntity tileEntity = schematic.getTileEntity(baseX + x, baseY + y, baseZ + z);
                     if (tileEntity != null) {
                         this.tileEntities.add(tileEntity);
@@ -79,13 +64,8 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
         for (int x = 0; x < Constants.SchematicChunk.WIDTH; x++) {
             for (int y = 0; y < Constants.SchematicChunk.HEIGHT; y++) {
                 for (int z = 0; z < Constants.SchematicChunk.LENGTH; z++, index++) {
-                    final Block block = BLOCK_REGISTRY.getObjectById(this.blocks[x][y][z] & 0xffff);
-                    int meta = this.metadata[x][y][z] & 0xff;
-                    if (this.highMetadata != null) {
-                        meta |= (this.highMetadata[index] & 0xff) << 8;
-                    }
-
-                    schematic.setBlock(this.baseX + x, this.baseY + y, this.baseZ + z, block, meta);
+                    final Block block = BLOCK_REGISTRY.getObjectById(this.blockIds[index]);
+                    schematic.setBlock(this.baseX + x, this.baseY + y, this.baseZ + z, block, this.metadata[index]);
                 }
             }
         }
@@ -101,18 +81,9 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
         this.baseY = buf.readShort();
         this.baseZ = buf.readShort();
 
-        this.blocks = new short[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
-        this.metadata = new byte[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
-        this.tileEntities = new ArrayList<>();
-        this.entities = new ArrayList<>();
-
-        for (int x = 0; x < Constants.SchematicChunk.WIDTH; x++) {
-            for (int y = 0; y < Constants.SchematicChunk.HEIGHT; y++) {
-                for (int z = 0; z < Constants.SchematicChunk.LENGTH; z++) {
-                    this.blocks[x][y][z] = buf.readShort();
-                    this.metadata[x][y][z] = buf.readByte();
-                }
-            }
+        for (int index = 0; index < CELL_COUNT; index++) {
+            this.blockIds[index] = buf.readInt();
+            this.metadata[index] = (char) buf.readUnsignedShort();
         }
 
         final NBTTagCompound compound = ByteBufUtils.readTag(buf);
@@ -120,15 +91,6 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
 
         final NBTTagCompound compound2 = ByteBufUtils.readTag(buf);
         this.entities = NBTHelper.readEntitiesFromCompound(compound2, this.entities);
-
-        this.highMetadata = null;
-        if (buf.isReadable()) {
-            if (buf.readableBytes() != CELL_COUNT) {
-                throw new IllegalArgumentException("Invalid schematic download metadata length");
-            }
-            this.highMetadata = new byte[CELL_COUNT];
-            buf.readBytes(this.highMetadata);
-        }
     }
 
     @Override
@@ -137,13 +99,9 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
         buf.writeShort(this.baseY);
         buf.writeShort(this.baseZ);
 
-        for (int x = 0; x < Constants.SchematicChunk.WIDTH; x++) {
-            for (int y = 0; y < Constants.SchematicChunk.HEIGHT; y++) {
-                for (int z = 0; z < Constants.SchematicChunk.LENGTH; z++) {
-                    buf.writeShort(this.blocks[x][y][z]);
-                    buf.writeByte(this.metadata[x][y][z]);
-                }
-            }
+        for (int index = 0; index < CELL_COUNT; index++) {
+            buf.writeInt(this.blockIds[index]);
+            buf.writeShort(this.metadata[index]);
         }
 
         final NBTTagCompound compound = NBTHelper.writeTileEntitiesToCompound(this.tileEntities);
@@ -151,16 +109,15 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
 
         final NBTTagCompound compound1 = NBTHelper.writeEntitiesToCompound(this.entities);
         ByteBufUtils.writeTag(buf, compound1);
-
-        // Append the high bytes after the original payload, outside NBT's signed-short length limit.
-        if (this.highMetadata != null) {
-            buf.writeBytes(this.highMetadata);
-        }
     }
 
     @Override
     public IMessage onMessage(MessageDownloadChunk message, MessageContext ctx) {
-        message.copyToSchematic(DownloadHandler.INSTANCE.schematic);
+        final ISchematic schematic = DownloadHandler.INSTANCE.schematic;
+        if (schematic == null) {
+            return null;
+        }
+        message.copyToSchematic(schematic);
 
         return new MessageDownloadChunkAck(message.baseX, message.baseY, message.baseZ);
     }

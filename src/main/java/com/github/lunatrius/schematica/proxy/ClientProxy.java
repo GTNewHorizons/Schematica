@@ -30,6 +30,7 @@ import com.github.lunatrius.schematica.client.world.SchematicWorld;
 import com.github.lunatrius.schematica.compat.ILOTRPresent;
 import com.github.lunatrius.schematica.compat.NoLOTRProxy;
 import com.github.lunatrius.schematica.handler.ConfigurationHandler;
+import com.github.lunatrius.schematica.handler.DownloadHandler;
 import com.github.lunatrius.schematica.handler.client.ChatEventHandler;
 import com.github.lunatrius.schematica.handler.client.InputHandler;
 import com.github.lunatrius.schematica.handler.client.OverlayHandler;
@@ -372,6 +373,8 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void resetSettings() {
         super.resetSettings();
+        DownloadHandler.INSTANCE.serverProtocolVersion = 0;
+        DownloadHandler.INSTANCE.schematic = null;
 
         ChatEventHandler.INSTANCE.chatLines = 0;
 

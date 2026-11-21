@@ -183,7 +183,7 @@ public final class ArchitectureCraftSupport {
             // Placement symmetry differs from the mirrored geometry of these models.
             mirrorTurn = switch (shape.shape) {
                 case AngledRoofRidge, DoricTriglyphCorner -> 1;
-                case IonicCapital, DoricCapital, CorinthianCapital -> 2;
+                case DoubleRoofTile, IonicCapital, DoricCapital, CorinthianCapital -> 2;
                 default -> shape.shape.symmetry == ShapeSymmetry.Unilateral ? 1 : 0;
             };
         }

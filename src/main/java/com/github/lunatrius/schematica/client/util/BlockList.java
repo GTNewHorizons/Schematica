@@ -8,13 +8,11 @@ import net.minecraft.block.BlockSlab;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
-import net.minecraft.init.Items;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemSlab;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.common.util.Constants;
 
 import com.github.lunatrius.schematica.client.compat.ArchitectureCraftSupport;
@@ -23,11 +21,8 @@ import com.github.lunatrius.schematica.client.compat.CookingForBlockheadsSupport
 import com.github.lunatrius.schematica.client.compat.EnderIOSlabSupport;
 import com.github.lunatrius.schematica.client.compat.MicroblockSupport;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
-import com.github.lunatrius.schematica.nbt.NBTHelper;
 import com.github.lunatrius.schematica.reference.Mods;
 import com.github.lunatrius.schematica.reference.Reference;
-
-import cpw.mods.fml.common.registry.GameRegistry;
 
 public class BlockList {
 
@@ -115,33 +110,13 @@ public class BlockList {
                         }
                     }
                     if (Mods.COOKING_FOR_BLOCKHEADS && block.hasTileEntity(world.getBlockMetadata(x, y, z))) {
-                        final GameRegistry.UniqueIdentifier name = GameRegistry.findUniqueIdentifierFor(block);
-                        if (name != null && Mods.COOKING_FOR_BLOCKHEADS_ID.equals(name.modId)) {
-                            final int color = kitchenColor(world.getTileEntity(x, y, z));
-                            final boolean pairedFridge = "fridge".equals(name.name) && !world.isRenderingLayer
-                                && y > 0
-                                && world.getBlock(x, y - 1, z) == block
-                                && kitchenColor(world.getTileEntity(x, y - 1, z)) == color;
-                            if (color >= 0 && color <= 15 && !pairedFridge) {
-                                final boolean hasUpperFridge = "fridge".equals(name.name) && !world.isRenderingLayer
-                                    && world.getBlock(x, y + 1, z) == block
-                                    && kitchenColor(world.getTileEntity(x, y + 1, z)) == color;
-                                final boolean dyed = hasKitchenColor(mcWorld, block, wx, wy, wz, color)
-                                    && (!hasUpperFridge || hasKitchenColor(mcWorld, block, wx, wy + 1, wz, color));
-                                if (color == 0 && !hasColoredKitchenBlock(mcWorld, block, wx, wy, wz)
-                                    && (!hasUpperFridge || !hasColoredKitchenBlock(mcWorld, block, wx, wy + 1, wz))) {
-                                    continue;
-                                }
-                                final WrappedItemStack dye = addMaterial(
-                                    blockList,
-                                    new ItemStack(Items.dye, 1, 15 - color),
-                                    1,
-                                    dyed);
+                        CookingForBlockheadsSupport
+                            .addDyeRequirement(world, x, y, z, mcWorld, wx, wy, wz, (stackDye, dyed) -> {
+                                final WrappedItemStack dye = addMaterial(blockList, stackDye, 1, dyed);
                                 if (!dyed) {
                                     dye.kitchenDyesNeeded++;
                                 }
-                            }
-                        }
+                            });
                     }
                 }
             }
@@ -218,20 +193,6 @@ public class BlockList {
             }
             dye.inventory += Math.min(Math.max(available, 0), dye.kitchenDyesNeeded);
         }
-    }
-
-    private int kitchenColor(TileEntity tile) {
-        return tile == null ? 0
-            : NBTHelper.writeTileEntityToCompound(tile)
-                .getByte("Color");
-    }
-
-    private boolean hasKitchenColor(WorldClient world, Block block, int x, int y, int z, int color) {
-        return world.getBlock(x, y, z) == block && kitchenColor(world.getTileEntity(x, y, z)) == color;
-    }
-
-    private boolean hasColoredKitchenBlock(WorldClient world, Block block, int x, int y, int z) {
-        return world.getBlock(x, y, z) == block && kitchenColor(world.getTileEntity(x, y, z)) != 0;
     }
 
     private WrappedItemStack addMaterial(List<WrappedItemStack> blockList, ItemStack stack, int count, boolean placed) {

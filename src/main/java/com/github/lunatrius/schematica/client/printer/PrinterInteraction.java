@@ -23,6 +23,7 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent.Action;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.IFluidBlock;
 
+import com.github.lunatrius.schematica.client.compat.ArchitectureCraftSupport;
 import com.github.lunatrius.schematica.client.compat.CarpentersBlocksSupport;
 import com.github.lunatrius.schematica.client.util.BlockToItemStack;
 import com.github.lunatrius.schematica.handler.ConfigurationHandler;
@@ -80,13 +81,26 @@ final class PrinterInteraction {
     }
 
     private int findItemSlot(ItemStack item) {
+        final boolean shape = Mods.ARCHITECTURE_CRAFT && ArchitectureCraftSupport.isShapeItem(item);
+        final int connections = shape ? ArchitectureCraftSupport.getDisabledConnections(item) : 0;
+        final boolean canSwap = !ConfigurationHandler.swapSlotsQueue.isEmpty()
+            && this.player.openContainer == this.player.inventoryContainer;
+        int fallback = -1;
         for (int i = 0; i < this.inventory.mainInventory.length; i++) {
             final ItemStack stack = this.inventory.mainInventory[i];
             if (stack != null && stack.stackSize > 0 && BlockToItemStack.matches(stack, item)) {
-                return i;
+                if (!shape || (ArchitectureCraftSupport.getDisabledConnections(stack) == connections
+                    && (i < Constants.Inventory.Size.HOTBAR || canSwap))) {
+                    return i;
+                }
+                if (fallback < 0) {
+                    fallback = i;
+                }
             }
         }
-        return -1;
+        // Creative can make an exact stack. Survival can use the sawbench shape and adjust its connections by hand.
+        return shape && this.controller.isInCreativeMode() && !ConfigurationHandler.swapSlotsQueue.isEmpty() ? -1
+            : fallback;
     }
 
     private boolean swapIntoHotbar(int sourceSlot) {

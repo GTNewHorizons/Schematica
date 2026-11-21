@@ -58,10 +58,12 @@ public final class ArchitectureCraftSupport {
     }
 
     public static boolean itemsMatch(ItemStack stack, ItemStack target) {
-        return sameShape(stack, target) && stack.getTagCompound()
-            .getInteger("Disconnected")
-            == target.getTagCompound()
-                .getInteger("Disconnected");
+        return sameShape(stack, target);
+    }
+
+    public static int getDisabledConnections(ItemStack stack) {
+        final NBTTagCompound tag = stack.getTagCompound();
+        return tag == null ? 0 : tag.getInteger("Disconnected");
     }
 
     private static boolean sameShape(ItemStack stack, ItemStack target) {

@@ -3,7 +3,6 @@ package com.github.lunatrius.schematica.network.message;
 import net.minecraft.entity.player.EntityPlayerMP;
 
 import com.github.lunatrius.schematica.handler.DownloadHandler;
-import com.github.lunatrius.schematica.network.transfer.SchematicTransfer;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -41,10 +40,7 @@ public class MessageDownloadChunkAck implements IMessage, IMessageHandler<Messag
     @Override
     public IMessage onMessage(MessageDownloadChunkAck message, MessageContext ctx) {
         EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-        SchematicTransfer transfer = DownloadHandler.INSTANCE.transferMap.get(player);
-        if (transfer != null) {
-            transfer.confirmChunk(message.baseX, message.baseY, message.baseZ);
-        }
+        DownloadHandler.INSTANCE.confirmChunk(player, message.baseX, message.baseY, message.baseZ);
 
         return null;
     }

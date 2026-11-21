@@ -1,5 +1,7 @@
 package com.github.lunatrius.schematica.network.transfer;
 
+import net.minecraft.block.Block;
+
 import com.github.lunatrius.schematica.api.ISchematic;
 import com.github.lunatrius.schematica.reference.Constants;
 
@@ -33,10 +35,12 @@ public class SchematicTransfer {
     public final int width;
     public final int height;
     public final int length;
+    public final boolean requiresExtendedBlockData;
 
     public State state = State.BEGIN_WAIT;
     public int timeout = 0;
     public int retries = 0;
+    public boolean supportsExtendedBlockData;
 
     public int baseX = 0;
     public int baseY = 0;
@@ -49,6 +53,7 @@ public class SchematicTransfer {
         this.width = schematic.getWidth();
         this.height = schematic.getHeight();
         this.length = schematic.getLength();
+        this.requiresExtendedBlockData = requiresExtendedBlockData();
     }
 
     public boolean confirmChunk(final int chunkX, final int chunkY, final int chunkZ) {
@@ -73,6 +78,21 @@ public class SchematicTransfer {
         }
 
         return true;
+    }
+
+    private boolean requiresExtendedBlockData() {
+        for (int x = 0; x < this.width; x++) {
+            for (int y = 0; y < this.height; y++) {
+                for (int z = 0; z < this.length; z++) {
+                    // Older clients keep four metadata bits and may save IDs in packed AddBlocks nibbles.
+                    if (this.schematic.getBlockMetadata(x, y, z) > 0xF
+                        || Block.getIdFromBlock(this.schematic.getBlock(x, y, z)) > 0xFFF) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     public void setState(State state) {

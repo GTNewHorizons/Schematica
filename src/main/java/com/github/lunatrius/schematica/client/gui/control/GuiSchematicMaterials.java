@@ -128,7 +128,7 @@ public class GuiSchematicMaterials extends GuiScreenBase {
         for (final BlockList.WrappedItemStack wrappedItemStack : blockList) {
             maxLengthName = Math.max(
                 maxLengthName,
-                wrappedItemStack.getItemStackDisplayName()
+                wrappedItemStack.getExportDisplayName()
                     .length());
             maxSize = Math.max(maxSize, wrappedItemStack.total);
         }
@@ -141,7 +141,7 @@ public class GuiSchematicMaterials extends GuiScreenBase {
         final StringBuilder stringBuilder = new StringBuilder((maxLengthName + 1 + maxLengthSize) * blockList.size());
         final Formatter formatter = new Formatter(stringBuilder);
         for (final BlockList.WrappedItemStack wrappedItemStack : blockList) {
-            formatter.format(formatName, wrappedItemStack.getItemStackDisplayName());
+            formatter.format(formatName, wrappedItemStack.getExportDisplayName());
             stringBuilder.append(" ");
             formatter.format(formatSize, wrappedItemStack.total);
             stringBuilder.append(System.lineSeparator());

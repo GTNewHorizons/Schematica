@@ -1,35 +1,33 @@
 package com.github.lunatrius.schematica.client.printer;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockLiquid;
+import net.minecraft.block.BlockHopper;
 import net.minecraft.block.BlockPistonBase;
+import net.minecraft.block.BlockRotatedPillar;
+import net.minecraft.block.BlockSlab;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.init.Items;
-import net.minecraft.item.ItemBucket;
+import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemSlab;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.play.client.C0BPacketEntityAction;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraftforge.event.ForgeEventFactory;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent.Action;
-import net.minecraftforge.fluids.BlockFluidBase;
-import net.minecraftforge.fluids.IFluidBlock;
 
 import com.github.lunatrius.core.util.vector.Vector3i;
+import com.github.lunatrius.schematica.client.compat.ArchitectureCraftSupport;
+import com.github.lunatrius.schematica.client.compat.CarpentersBlocksSupport;
+import com.github.lunatrius.schematica.client.compat.MicroblockSupport;
 import com.github.lunatrius.schematica.client.printer.registry.PlacementData;
 import com.github.lunatrius.schematica.client.printer.registry.PlacementRegistry;
 import com.github.lunatrius.schematica.client.util.BlockToItemStack;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
 import com.github.lunatrius.schematica.handler.ConfigurationHandler;
 import com.github.lunatrius.schematica.proxy.ClientProxy;
-import com.github.lunatrius.schematica.reference.Constants;
+import com.github.lunatrius.schematica.reference.Mods;
 import com.github.lunatrius.schematica.reference.Reference;
 
 import cpw.mods.fml.common.registry.FMLControlledNamespacedRegistry;
@@ -39,14 +37,15 @@ public class SchematicPrinter {
 
     public static final SchematicPrinter INSTANCE = new SchematicPrinter();
     public static final FMLControlledNamespacedRegistry<Block> BLOCK_REGISTRY = GameData.getBlockRegistry();
-
     private final Minecraft minecraft = Minecraft.getMinecraft();
+    private final MicroblockPrinter microblocks = new MicroblockPrinter();
+    private final CarpentersPrinter carpenters = new CarpentersPrinter();
+    private final ArchitectureCraftPrinter architectureCraft = new ArchitectureCraftPrinter();
 
     private boolean isEnabled;
     private boolean isPrinting;
-
-    private SchematicWorld schematic = null;
-    private byte[][][] timeout = null;
+    private SchematicWorld schematic;
+    private byte[][][] retryDelay;
 
     public boolean isEnabled() {
         return this.isEnabled;
@@ -76,22 +75,28 @@ public class SchematicPrinter {
     public void setSchematic(SchematicWorld schematic) {
         this.isPrinting = false;
         this.schematic = schematic;
+        if (schematic == null) {
+            this.carpenters.reset();
+        }
         refresh();
     }
 
     public void refresh() {
+        this.microblocks.reset();
         if (this.schematic != null) {
-            this.timeout = new byte[this.schematic.getWidth()][this.schematic.getHeight()][this.schematic.getLength()];
+            this.retryDelay = new byte[this.schematic.getWidth()][this.schematic.getHeight()][this.schematic
+                .getLength()];
         } else {
-            this.timeout = null;
+            this.retryDelay = null;
         }
     }
 
     public boolean print() {
         final EntityClientPlayerMP player = this.minecraft.thePlayer;
         final World world = this.minecraft.theWorld;
-
-        syncSneaking(player, true);
+        final PrinterInteraction interaction = new PrinterInteraction(world, player, this.minecraft.playerController);
+        this.carpenters.beginPass(world);
+        this.architectureCraft.beginPass(world);
 
         final Vector3i trans = ClientProxy.playerPosition.clone()
             .sub(this.schematic.position.x, this.schematic.position.y, this.schematic.position.z)
@@ -104,62 +109,120 @@ public class SchematicPrinter {
         final int maxZ = Math.min(this.schematic.getLength(), trans.z + 4);
 
         final int slot = player.inventory.currentItem;
-        final boolean isSneaking = player.isSneaking();
-
-        final boolean isRenderingLayer = this.schematic.isRenderingLayer;
-        final int renderingLayer = this.schematic.renderingLayer;
-        for (int y = minY; y < maxY; y++) {
-            if (isRenderingLayer && y != renderingLayer) {
-                continue;
-            }
-
-            for (int x = minX; x < maxX; x++) {
-                for (int z = minZ; z < maxZ; z++) {
-                    try {
-                        if (placeBlock(world, player, x, y, z)) {
-                            player.inventory.currentItem = slot;
-                            syncSneaking(player, isSneaking);
+        final boolean wasSneaking = player.isSneaking();
+        interaction.syncSneaking(true);
+        try {
+            final boolean isRenderingLayer = this.schematic.isRenderingLayer;
+            final int renderingLayer = this.schematic.renderingLayer;
+            for (int y = minY; y < maxY; y++) {
+                if (isRenderingLayer && renderingLayer != y) {
+                    continue;
+                }
+                for (int x = minX; x < maxX; x++) {
+                    for (int z = minZ; z < maxZ; z++) {
+                        if (printCell(interaction, x, y, z)) {
                             return true;
                         }
-                    } catch (Exception e) {
-                        Reference.logger.error("Could not place block!", e);
-                        player.inventory.currentItem = slot;
-                        syncSneaking(player, isSneaking);
-                        return false;
                     }
                 }
             }
+            return true;
+        } catch (Exception e) {
+            Reference.logger.error("Could not place block!", e);
+            return false;
+        } finally {
+            player.inventory.currentItem = slot;
+            interaction.syncSneaking(wasSneaking);
         }
-
-        player.inventory.currentItem = slot;
-        syncSneaking(player, isSneaking);
-        return true;
     }
 
-    private boolean placeBlock(World world, EntityPlayer player, int x, int y, int z) {
-        if (this.timeout[x][y][z] > 0) {
-            this.timeout[x][y][z] -= ConfigurationHandler.placeDelay;
+    // Returns true when placement should end the current pass.
+    private boolean printCell(PrinterInteraction interaction, int x, int y, int z) {
+        final World world = interaction.world;
+        final EntityClientPlayerMP player = interaction.player;
+        final int worldX = this.schematic.position.x + x;
+        final int worldY = this.schematic.position.y + y;
+        final int worldZ = this.schematic.position.z + z;
+
+        if (this.carpenters.isWaiting(worldX, worldY, worldZ)
+            || this.microblocks.isWaiting(world, x, y, z, worldX, worldY, worldZ)) {
             return false;
         }
-
-        final int wx = this.schematic.position.x + x;
-        final int wy = this.schematic.position.y + y;
-        final int wz = this.schematic.position.z + z;
+        if (this.retryDelay[x][y][z] > 0) {
+            this.retryDelay[x][y][z] -= Math.max(1, ConfigurationHandler.placeDelay);
+            return false;
+        }
 
         final Block block = this.schematic.getBlock(x, y, z);
-        final Block realBlock = world.getBlock(wx, wy, wz);
+        final Block placedBlock = world.getBlock(worldX, worldY, worldZ);
         final int metadata = this.schematic.getBlockMetadata(x, y, z);
-        final int realMetadata = world.getBlockMetadata(wx, wy, wz);
+        final int placedMetadata = world.getBlockMetadata(worldX, worldY, worldZ);
 
-        if (block == realBlock && metadata == realMetadata) {
+        if (Mods.FORGE_MICROBLOCK && MicroblockSupport.isMultipartBlock(block)) {
+            final TileEntity tile = this.schematic.getTileEntity(x, y, z);
+            if (MicroblockSupport.hasMicroblocks(tile)) {
+                return this.microblocks.place(interaction, tile, x, y, z, worldX, worldY, worldZ)
+                    && !ConfigurationHandler.placeInstantly;
+            }
+        }
+
+        final boolean carpenterBlock = Mods.CARPENTERS_BLOCKS && CarpentersBlocksSupport.isCoverable(block);
+        if (carpenterBlock && block == placedBlock) {
+            return this.carpenters.configureBlock(
+                interaction,
+                this.schematic,
+                block,
+                this.schematic.getTileEntity(x, y, z),
+                worldX,
+                worldY,
+                worldZ) && !ConfigurationHandler.placeInstantly;
+        }
+
+        final boolean architectureShape = Mods.ARCHITECTURE_CRAFT && ArchitectureCraftSupport.isShapeBlock(block);
+        final TileEntity architectureTile = architectureShape ? this.schematic.getTileEntity(x, y, z) : null;
+        final TileEntity placedArchitectureTile = architectureShape && block == placedBlock
+            ? world.getTileEntity(worldX, worldY, worldZ)
+            : null;
+        if (architectureShape && ArchitectureCraftSupport.needsHammerTurn(placedArchitectureTile, architectureTile)) {
+            if (this.architectureCraft.rotateCapital(interaction, placedArchitectureTile, worldX, worldY, worldZ)) {
+                this.retryDelay[x][y][z] = (byte) ConfigurationHandler.timeout;
+                return !ConfigurationHandler.placeInstantly;
+            }
+            return false;
+        }
+        if (block == placedBlock && BlockToItemStack.matchesMetadata(block, placedMetadata, metadata)
+            && BlockToItemStack.matchesPaint(block, world, worldX, worldY, worldZ, this.schematic, x, y, z)
+            && (!architectureShape
+                || ArchitectureCraftSupport.matches(placedArchitectureTile, architectureTile, block))) {
             return false;
         }
 
-        if (ConfigurationHandler.destroyBlocks && !world.isAirBlock(wx, wy, wz)
-            && this.minecraft.playerController.isInCreativeMode()) {
-            this.minecraft.playerController.clickBlock(wx, wy, wz, 0);
+        // Native slab merges cannot recreate the seamless double-stone-slab variant.
+        if (block == Blocks.double_stone_slab && (metadata & 8) != 0) {
+            return false;
+        }
 
-            this.timeout[x][y][z] = (byte) ConfigurationHandler.timeout;
+        if (block instanceof BlockSlab && block.isOpaqueCube()
+            && placedBlock instanceof BlockSlab
+            && !placedBlock.isOpaqueCube()) {
+            final ItemStack slab = BlockToItemStack.getItemStack(player, block, this.schematic, x, y, z);
+            if (slab != null && slab.getItem() instanceof ItemSlab
+                && BlockToItemStack.matchesHalfSlab(world, worldX, worldY, worldZ, slab)
+                && BlockToItemStack.matchesPaint(block, world, worldX, worldY, worldZ, this.schematic, x, y, z)) {
+                if (interaction.selectItem(slab)
+                    && mergeSlab(interaction, worldX, worldY, worldZ, player.getHeldItem())) {
+                    this.retryDelay[x][y][z] = (byte) ConfigurationHandler.timeout;
+                    return !ConfigurationHandler.placeInstantly;
+                }
+                return false;
+            }
+        }
+
+        if (ConfigurationHandler.destroyBlocks && !world.isAirBlock(worldX, worldY, worldZ)
+            && this.minecraft.playerController.isInCreativeMode()) {
+            this.minecraft.playerController.clickBlock(worldX, worldY, worldZ, 0);
+
+            this.retryDelay[x][y][z] = (byte) ConfigurationHandler.timeout;
 
             return !ConfigurationHandler.destroyInstantly;
         }
@@ -168,7 +231,7 @@ public class SchematicPrinter {
             return false;
         }
 
-        if (!realBlock.isReplaceable(world, wx, wy, wz)) {
+        if (!placedBlock.isReplaceable(world, worldX, worldY, worldZ)) {
             return false;
         }
 
@@ -178,8 +241,24 @@ public class SchematicPrinter {
             return false;
         }
 
-        if (placeBlock(world, player, wx, wy, wz, block, metadata, itemStack)) {
-            this.timeout[x][y][z] = (byte) ConfigurationHandler.timeout;
+        final boolean success;
+        if (architectureShape) {
+            success = ArchitectureCraftPrinter.place(interaction, worldX, worldY, worldZ, architectureTile, itemStack);
+        } else if (carpenterBlock) {
+            success = CarpentersPrinter.place(
+                interaction,
+                this.schematic,
+                block,
+                x,
+                y,
+                z,
+                itemStack,
+                () -> placeVanillaBlock(interaction, worldX, worldY, worldZ, block, metadata, itemStack));
+        } else {
+            success = placeVanillaBlock(interaction, worldX, worldY, worldZ, block, metadata, itemStack);
+        }
+        if (success) {
+            this.retryDelay[x][y][z] = (byte) ConfigurationHandler.timeout;
 
             if (!ConfigurationHandler.placeInstantly) {
                 return true;
@@ -189,105 +268,92 @@ public class SchematicPrinter {
         return false;
     }
 
-    private boolean isSolid(World world, int x, int y, int z, ForgeDirection side) {
-        x += side.offsetX;
-        y += side.offsetY;
-        z += side.offsetZ;
-
-        Block block = world.getBlock(x, y, z);
-
-        if (block == null) {
-            return false;
-        }
-
-        if (block.isAir(world, x, y, z)) {
-            return false;
-        }
-
-        if (block instanceof BlockFluidBase) {
-            return false;
-        }
-
-        if (block.isReplaceable(world, x, y, z)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    private ForgeDirection[] getSolidSides(World world, int x, int y, int z) {
-        List<ForgeDirection> list = new ArrayList<>();
-
-        for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
-            if (isSolid(world, x, y, z, side)) {
-                list.add(side);
-            }
-        }
-
-        ForgeDirection[] sides = new ForgeDirection[list.size()];
-        return list.toArray(sides);
-    }
-
-    private boolean placeBlock(World world, EntityPlayer player, int x, int y, int z, Block block, int metadata,
+    private boolean placeVanillaBlock(PrinterInteraction interaction, int x, int y, int z, Block block, int metadata,
         ItemStack itemStack) {
-        if (isBlacklisted(block, itemStack)) {
+        final World world = interaction.world;
+        if (PrinterInteraction.isBlacklisted(block, itemStack)) {
             return false;
         }
 
         PlacementData data = PlacementRegistry.INSTANCE.getPlacementData(block, itemStack);
 
-        if (!isValidOrientation(player, x, y, z, data, metadata)) {
+        if (!isValidOrientation(interaction.player, x, y, z, data, metadata)) {
             return false;
         }
 
-        ForgeDirection[] solidSides = getSolidSides(world, x, y, z);
+        final ForgeDirection[] solidSides = interaction.findSupports(x, y, z);
+        final ForgeDirection[] validSides = data == null ? solidSides : data.getValidDirections(solidSides, metadata);
+        final boolean slab = block instanceof BlockSlab && itemStack.getItem() instanceof ItemSlab;
+        final boolean halfSlab = slab && !block.isOpaqueCube();
         ForgeDirection direction = ForgeDirection.UNKNOWN;
-        float offsetY = 0.0f;
-        int extraClicks = 0;
-
-        if (solidSides.length > 0) {
-            if (data != null) {
-                ForgeDirection[] validDirections = data.getValidDirections(solidSides, metadata);
-                if (validDirections.length > 0) {
-                    direction = validDirections[0];
-                }
-
-                offsetY = data.getOffsetFromMetadata(metadata);
-                extraClicks = data.getExtraClicks(block, metadata);
-            } else {
-                direction = solidSides[0];
+        for (ForgeDirection support : validSides) {
+            if ((!halfSlab || placesSlabHalf(metadata, support)) && PrinterInteraction.canClickForPlacement(
+                world.getBlock(x + support.offsetX, y + support.offsetY, z + support.offsetZ),
+                itemStack,
+                true) && (!slab || !wouldMergeSupportingSlab(world, x, y, z, support, itemStack))) {
+                direction = support;
+                break;
             }
+        }
 
-            if (!swapToItem(player.inventory, itemStack)) {
+        final boolean adjacent = direction != ForgeDirection.UNKNOWN;
+        if (!adjacent) {
+            final boolean needsMappedSupport = data != null && data.type == PlacementData.PlacementType.BLOCK
+                && !data.mapping.isEmpty()
+                && !(block instanceof BlockRotatedPillar || block instanceof BlockHopper);
+            if ((ConfigurationHandler.placeAdjacent && solidSides.length == 0)
+                || (needsMappedSupport && validSides.length == 0)
+                || !(itemStack.getItem() instanceof ItemBlock)) {
+                return false;
+            }
+            final ForgeDirection[] valid = needsMappedSupport ? validSides
+                : data == null ? ForgeDirection.VALID_DIRECTIONS
+                    : data.getValidDirections(ForgeDirection.VALID_DIRECTIONS, metadata);
+            // ItemBlock forces an upward click when replacing a single layer of snow.
+            final boolean snowForcesUp = world.getBlock(x, y, z) == Blocks.snow_layer
+                && (world.getBlockMetadata(x, y, z) & 7) == 0;
+            for (ForgeDirection side : valid) {
+                // ItemSlab checks the block across the clicked face before placing into the clicked cell.
+                if ((!snowForcesUp || side == ForgeDirection.DOWN) && (!halfSlab || placesSlabHalf(metadata, side))
+                    && (!slab || !BlockToItemStack
+                        .matchesHalfSlab(world, x - side.offsetX, y - side.offsetY, z - side.offsetZ, itemStack))) {
+                    direction = side;
+                    break;
+                }
+            }
+            if (direction == ForgeDirection.UNKNOWN) {
                 return false;
             }
         }
 
-        if (direction != ForgeDirection.UNKNOWN || !ConfigurationHandler.placeAdjacent) {
-            return placeBlock(world, player, x, y, z, direction, 0.0f, offsetY, 0.0f, extraClicks);
-        }
-
-        return false;
+        final float offsetY = data == null || data.maskOffset == 0 ? 0.5f : data.getOffsetFromMetadata(metadata);
+        final int extraClicks = data == null ? 0 : data.getExtraClicks(block, metadata);
+        return interaction.selectBlockItem(itemStack)
+            && placeAgainstSupport(interaction, x, y, z, direction, adjacent, offsetY, extraClicks);
     }
 
-    private boolean isBlacklisted(Block block, ItemStack itemStack) {
-        if (block instanceof IFluidBlock || block instanceof BlockLiquid) {
-            return true;
-        }
+    static boolean placesSlabHalf(int metadata, ForgeDirection support) {
+        return support.offsetY == 0
+            || ((metadata & 8) != 0 ? support == ForgeDirection.UP : support == ForgeDirection.DOWN);
+    }
 
-        if (itemStack.getItem() instanceof ItemBucket) {
-            return true;
+    private boolean wouldMergeSupportingSlab(World world, int x, int y, int z, ForgeDirection support, ItemStack slab) {
+        if (support.offsetY == 0 || !BlockToItemStack.matchesHalfSlab(world, x, y + support.offsetY, z, slab)) {
+            return false;
         }
+        final boolean top = (world.getBlockMetadata(x, y + support.offsetY, z) & 8) != 0;
+        return top ? support == ForgeDirection.UP : support == ForgeDirection.DOWN;
+    }
 
-        if (itemStack.getItem() == Items.sign) {
-            return true;
-        }
-
-        if (ClientProxy.lotrProxy.isBlackListed(block, itemStack)) {
-            return true;
-        }
-
-        return false;
+    private boolean mergeSlab(PrinterInteraction interaction, int x, int y, int z, ItemStack slab) {
+        final boolean top = (interaction.world.getBlockMetadata(x, y, z) & 8) != 0;
+        return interaction.place(
+            slab,
+            x,
+            y,
+            z,
+            top ? ForgeDirection.DOWN.ordinal() : ForgeDirection.UP.ordinal(),
+            Vec3.createVectorHelper(x + 0.5, y + 0.5, z + 0.5));
     }
 
     private boolean isValidOrientation(EntityPlayer player, int x, int y, int z, PlacementData data, int metadata) {
@@ -320,116 +386,47 @@ public class SchematicPrinter {
         return true;
     }
 
-    private boolean placeBlock(World world, EntityPlayer player, int x, int y, int z, ForgeDirection direction,
-        float offsetX, float offsetY, float offsetZ, int extraClicks) {
-        ItemStack itemStack = player.getCurrentEquippedItem();
+    private boolean placeAgainstSupport(PrinterInteraction interaction, int x, int y, int z, ForgeDirection direction,
+        boolean adjacent, float offsetY, int extraClicks) {
+        final EntityClientPlayerMP player = interaction.player;
+        final ItemStack itemStack = player.getCurrentEquippedItem();
 
         if (!this.minecraft.playerController.isInCreativeMode() && itemStack != null
+            && !(itemStack.getItem() instanceof ItemSlab)
             && itemStack.stackSize <= extraClicks) {
             return false;
         }
 
-        x += direction.offsetX;
-        y += direction.offsetY;
-        z += direction.offsetZ;
+        final int clickedX = adjacent ? x + direction.offsetX : x;
+        final int clickedY = adjacent ? y + direction.offsetY : y;
+        final int clickedZ = adjacent ? z + direction.offsetZ : z;
+        final ForgeDirection face = direction.getOpposite();
+        final int side = face.ordinal();
+        final Vec3 hit = Vec3.createVectorHelper(
+            clickedX + 0.5 + face.offsetX * 0.5,
+            clickedY + (face.offsetY == 0 ? offsetY : (1 + face.offsetY) * 0.5),
+            clickedZ + 0.5 + face.offsetZ * 0.5);
 
-        int side = direction.getOpposite()
-            .ordinal();
-        final Vec3 hitVec = Vec3.createVectorHelper(x + offsetX, y + offsetY, z + offsetZ);
-
-        boolean success = placeBlock(world, player, itemStack, x, y, z, side, hitVec);
-        for (int i = 0; success && i < extraClicks; i++) {
-            success = placeBlock(world, player, itemStack, x, y, z, side, hitVec);
-        }
+        final boolean success = interaction.withSneaking(true, () -> {
+            boolean placed = interaction.place(itemStack, clickedX, clickedY, clickedZ, side, hit);
+            if (placed && extraClicks > 0 && itemStack.getItem() instanceof ItemSlab) {
+                // The existing-half path can finish on a later pass when the remaining slab is in another slot.
+                if (itemStack.stackSize > 0
+                    && BlockToItemStack.matchesHalfSlab(interaction.world, x, y, z, itemStack)) {
+                    mergeSlab(interaction, x, y, z, itemStack);
+                }
+                return true;
+            }
+            for (int i = 0; placed && i < extraClicks; i++) {
+                placed = interaction.place(itemStack, clickedX, clickedY, clickedZ, side, hit);
+            }
+            return placed;
+        });
 
         if (itemStack != null && itemStack.stackSize == 0 && success) {
             player.inventory.mainInventory[player.inventory.currentItem] = null;
         }
 
         return success;
-    }
-
-    private boolean placeBlock(World world, EntityPlayer player, ItemStack itemStack, int x, int y, int z, int side,
-        Vec3 hitVec) {
-        boolean success = !ForgeEventFactory.onPlayerInteract(player, Action.RIGHT_CLICK_BLOCK, x, y, z, side, world)
-            .isCanceled();
-        if (success) {
-            success = this.minecraft.playerController
-                .onPlayerRightClick(player, world, itemStack, x, y, z, side, hitVec);
-            if (success) {
-                player.swingItem();
-            }
-        }
-
-        return success;
-    }
-
-    private void syncSneaking(EntityClientPlayerMP player, boolean isSneaking) {
-        player.setSneaking(isSneaking);
-        player.sendQueue.addToSendQueue(new C0BPacketEntityAction(player, isSneaking ? 1 : 2));
-    }
-
-    private boolean swapToItem(InventoryPlayer inventory, ItemStack itemStack) {
-        return swapToItem(inventory, itemStack, true);
-    }
-
-    private boolean swapToItem(InventoryPlayer inventory, ItemStack itemStack, boolean swapSlots) {
-        int slot = getInventorySlotWithItem(inventory, itemStack);
-
-        if (this.minecraft.playerController.isInCreativeMode()
-            && (slot < Constants.Inventory.InventoryOffset.HOTBAR
-                || slot >= Constants.Inventory.InventoryOffset.HOTBAR + Constants.Inventory.Size.HOTBAR)
-            && !ConfigurationHandler.swapSlotsQueue.isEmpty()) {
-            inventory.currentItem = getNextSlot();
-            inventory.setInventorySlotContents(inventory.currentItem, itemStack.copy());
-            this.minecraft.playerController.sendSlotPacket(
-                inventory.getStackInSlot(inventory.currentItem),
-                Constants.Inventory.SlotOffset.HOTBAR + inventory.currentItem);
-            return true;
-        }
-
-        if (slot >= Constants.Inventory.InventoryOffset.HOTBAR
-            && slot < Constants.Inventory.InventoryOffset.HOTBAR + Constants.Inventory.Size.HOTBAR) {
-            inventory.currentItem = slot;
-            return true;
-        } else if (swapSlots && slot >= Constants.Inventory.InventoryOffset.INVENTORY
-            && slot < Constants.Inventory.InventoryOffset.INVENTORY + Constants.Inventory.Size.INVENTORY) {
-                if (swapSlots(inventory, slot)) {
-                    return swapToItem(inventory, itemStack, false);
-                }
-            }
-        return false;
-    }
-
-    private int getInventorySlotWithItem(final InventoryPlayer inventory, final ItemStack itemStack) {
-        for (int i = 0; i < inventory.mainInventory.length; i++) {
-            if (inventory.mainInventory[i] != null && inventory.mainInventory[i].isItemEqual(itemStack)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private boolean swapSlots(InventoryPlayer inventory, int from) {
-        if (!ConfigurationHandler.swapSlotsQueue.isEmpty()) {
-            int slot = getNextSlot();
-
-            swapSlots(from, slot);
-            return true;
-        }
-
-        return false;
-    }
-
-    private int getNextSlot() {
-        int slot = ConfigurationHandler.swapSlotsQueue.poll() % Constants.Inventory.Size.HOTBAR;
-        ConfigurationHandler.swapSlotsQueue.offer(slot);
-        return slot;
-    }
-
-    private boolean swapSlots(final int from, final int to) {
-        return this.minecraft.playerController
-            .windowClick(this.minecraft.thePlayer.inventoryContainer.windowId, from, to, 2, this.minecraft.thePlayer)
-            == null;
     }
 }

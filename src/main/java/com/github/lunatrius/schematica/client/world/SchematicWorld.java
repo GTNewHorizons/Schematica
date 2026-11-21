@@ -21,7 +21,9 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.github.lunatrius.core.util.vector.Vector3f;
 import com.github.lunatrius.core.util.vector.Vector3i;
 import com.github.lunatrius.schematica.api.ISchematic;
+import com.github.lunatrius.schematica.client.compat.ArchitectureCraftSupport;
 import com.github.lunatrius.schematica.handler.ConfigurationHandler;
+import com.github.lunatrius.schematica.reference.Mods;
 import com.github.lunatrius.schematica.reference.Reference;
 import com.github.lunatrius.schematica.world.chunk.ChunkProviderSchematic;
 import com.github.lunatrius.schematica.world.storage.SaveHandlerSchematic;
@@ -84,6 +86,10 @@ public class SchematicWorld extends World {
             return Blocks.air;
         }
 
+        return getBlockIncludingHiddenLayers(x, y, z);
+    }
+
+    public Block getBlockIncludingHiddenLayers(int x, int y, int z) {
         return this.schematic.getBlock(x, y, z);
     }
 
@@ -230,6 +236,24 @@ public class SchematicWorld extends World {
     }
 
     public void flip(ForgeDirection direction) {
+        transformAllLayers(() -> flipSchematic(direction));
+    }
+
+    public void rotate(ForgeDirection direction) {
+        transformAllLayers(() -> rotateSchematic(direction));
+    }
+
+    private void transformAllLayers(Runnable transform) {
+        final boolean wasRenderingLayer = this.isRenderingLayer;
+        this.isRenderingLayer = false;
+        try {
+            transform.run();
+        } finally {
+            this.isRenderingLayer = wasRenderingLayer;
+        }
+    }
+
+    private void flipSchematic(ForgeDirection direction) {
         final ItemStack icon = this.schematic.getIcon();
         final int width = this.schematic.getWidth();
         final int height = this.schematic.getHeight();
@@ -310,10 +334,11 @@ public class SchematicWorld extends World {
         }
 
         this.schematic = schematicFlipped;
+        transformShapeTiles(direction, true);
         refreshChests();
     }
 
-    public void rotate(ForgeDirection direction) {
+    private void rotateSchematic(ForgeDirection direction) {
         final ItemStack icon = this.schematic.getIcon();
         final int width = this.schematic.getWidth();
         final int height = this.schematic.getHeight();
@@ -439,6 +464,16 @@ public class SchematicWorld extends World {
                 break;
             default:
                 Reference.logger.debug("Incorrect direction given to rotate function!");
+                return;
+        }
+        transformShapeTiles(direction, false);
+    }
+
+    private void transformShapeTiles(ForgeDirection direction, boolean mirror) {
+        if (Mods.ARCHITECTURE_CRAFT) {
+            for (TileEntity tile : this.schematic.getTileEntities()) {
+                ArchitectureCraftSupport.transform(tile, direction, mirror);
+            }
         }
     }
 

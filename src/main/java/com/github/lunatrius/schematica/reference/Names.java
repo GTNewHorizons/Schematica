@@ -144,6 +144,7 @@ public final class Names {
                 public static final String DOWNLOAD_STARTED = "schematica.command.download.started";
                 public static final String DOWNLOAD_SUCCEEDED = "schematica.command.download.downloadSucceeded";
                 public static final String DOWNLOAD_FAILED = "schematica.command.download.downloadFail";
+                public static final String DOWNLOAD_REQUIRES_UPDATE = "schematica.command.download.requiresUpdate";
             }
 
             public static final String NAME = "schematicaDownload";
@@ -231,6 +232,7 @@ public final class Names {
         public static final String ICON = "Icon";
         public static final String BLOCKS = "Blocks";
         public static final String DATA = "Data";
+        public static final String DATA_HIGH = "SchematicaDataHigh";
         public static final String ADD_BLOCKS = "AddBlocks";
         public static final String ADD_BLOCKS_SCHEMATICA = "Add";
         public static final String WIDTH = "Width";

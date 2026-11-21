@@ -108,6 +108,12 @@ public final class CarpentersHammerSupport {
             forwardCycle(PRESSURE_PLATE::getTriggerEntity, 4),
             toggle(PRESSURE_PLATE::getPolarity, Click.LEFT)),
         new BlockSettings(BlockCarpentersButton.class, toggle(BUTTON::getPolarity, Click.LEFT)),
+        if (block instanceof BlockCarpentersTorch && TORCH.getDirection(actual) != TORCH.getDirection(expected)) {
+            return false;
+        }
+        if (block instanceof BlockCarpentersLadder && LADDER.getDirection(actual) != LADDER.getDirection(expected)) {
+            return false;
+        }
         new BlockSettings(BlockCarpentersLever.class, toggle(LEVER::getPolarity, Click.LEFT)),
         new BlockSettings(
             BlockCarpentersSafe.class,

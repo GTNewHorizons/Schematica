@@ -1,10 +1,12 @@
 package com.github.lunatrius.schematica.client.printer;
 
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 
 import net.minecraft.block.Block;
+import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -23,6 +25,7 @@ final class CarpentersPrinter {
     private static final float[] SHAPE_HIT_OFFSETS = { 0.5f, 0.125f, 0.875f, 0.25f, 0.75f };
 
     private final Map<ChunkPosition, PendingClick> pendingClicks = new HashMap<>();
+    private PendingClick pendingGarageStock;
     private long currentPass;
 
     void reset() {
@@ -33,6 +36,9 @@ final class CarpentersPrinter {
         final long pass = ++this.currentPass;
         this.pendingClicks.values()
             .removeIf(click -> click.allowsNextClick(world, pass));
+        if (this.pendingGarageStock != null && this.pendingGarageStock.allowsNextClick(world, pass)) {
+            this.pendingGarageStock = null;
+        }
     }
 
     boolean isWaiting(int x, int y, int z) {
@@ -178,11 +184,16 @@ final class CarpentersPrinter {
     private boolean placeGarageDoor(PrinterInteraction interaction, int x, int y, int z, Block block, ItemStack item,
         float yaw) {
         final World world = interaction.world;
-        if (PrinterInteraction.isBlacklisted(block, item)
+        final boolean consumesItem = !interaction.player.capabilities.isCreativeMode;
+        if ((consumesItem && this.pendingGarageStock != null) || PrinterInteraction.isBlacklisted(block, item)
             || !PrinterInteraction.canClickForPlacement(world.getBlock(x, y + 1, z), item, true)
             || !interaction.selectItem(item)) {
             return false;
         }
+        final InventoryPlayer inventory = interaction.player.inventory;
+        final int slot = inventory.currentItem;
+        final ItemStack held = inventory.getCurrentItem();
+        final int count = held.stackSize;
         // Client prediction creates the whole column, but a rejected server click only corrects the host cell.
         final boolean sent = interaction.withSneaking(
             true,
@@ -203,6 +214,15 @@ final class CarpentersPrinter {
                     world,
                     this.currentPass,
                     () -> world.blockExists(x, y, z) && world.getBlock(x, y, z) == block));
+            if (consumesItem) {
+                // A block update can arrive before the consumed item is removed from the selected slot.
+                final WeakReference<InventoryPlayer> inventoryRef = new WeakReference<>(inventory);
+                this.pendingGarageStock = new PendingClick(world, this.currentPass, () -> {
+                    final InventoryPlayer current = inventoryRef.get();
+                    final ItemStack stack = current == null ? null : current.getStackInSlot(slot);
+                    return stack == null || !stack.isItemEqual(item) || stack.stackSize < count;
+                });
+            }
         }
         return sent;
     }
@@ -337,7 +357,7 @@ final class CarpentersPrinter {
 
     private static final class PendingClick {
 
-        private final World world;
+        private final WeakReference<World> world;
         private final long retryPass;
         private final BooleanSupplier confirmed;
         private long lastChecked = Long.MIN_VALUE;
@@ -346,14 +366,14 @@ final class CarpentersPrinter {
         private PendingClick(World world, long pass, BooleanSupplier confirmed) {
             final int delay = Math.max(1, ConfigurationHandler.placeDelay);
             final int timeout = Math.max(20, ConfigurationHandler.timeout);
-            this.world = world;
+            this.world = new WeakReference<>(world);
             // Keep the original retry interval in printer passes for clicks without a server update.
             this.retryPass = pass + 2 + (timeout - 1) / delay;
             this.confirmed = confirmed;
         }
 
         private boolean allowsNextClick(World world, long pass) {
-            if (world != this.world || pass >= this.retryPass) {
+            if (world != this.world.get() || pass >= this.retryPass) {
                 return true;
             }
             // Connected panels share a click. Check all of them once per printer pass.

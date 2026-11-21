@@ -28,6 +28,10 @@ public final class EnderIOSlabSupport {
         return PainterUtil.isMetadataEquivelent(actual, expected);
     }
 
+    public static String getPaintName(ItemStack stack) {
+        return PainterUtil.getTooltTipText(stack);
+    }
+
     public static boolean matchesPaint(TileEntity actual, TileEntity expected) {
         return actual instanceof TileEntityPaintedBlock placed && expected instanceof TileEntityPaintedBlock saved
             && placed.getSourceBlock() == saved.getSourceBlock()

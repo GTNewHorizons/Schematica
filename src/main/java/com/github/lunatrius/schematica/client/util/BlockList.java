@@ -16,6 +16,7 @@ import net.minecraft.tileentity.TileEntity;
 import com.github.lunatrius.schematica.client.compat.ArchitectureCraftSupport;
 import com.github.lunatrius.schematica.client.compat.CarpentersBlocksSupport;
 import com.github.lunatrius.schematica.client.compat.CookingForBlockheadsSupport;
+import com.github.lunatrius.schematica.client.compat.EnderIOSlabSupport;
 import com.github.lunatrius.schematica.client.compat.MicroblockSupport;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
 import com.github.lunatrius.schematica.nbt.NBTHelper;
@@ -235,6 +236,14 @@ public class BlockList {
                 if (!material.isEmpty()) {
                     return name + " (" + material + ")";
                 }
+            }
+            return name;
+        }
+
+        public String getExportDisplayName() {
+            final String name = getItemStackDisplayName();
+            if (Mods.ENDER_IO && EnderIOSlabSupport.isPaintedSlab(Block.getBlockFromItem(this.itemStack.getItem()))) {
+                return name + " (" + EnderIOSlabSupport.getPaintName(this.itemStack) + ")";
             }
             return name;
         }

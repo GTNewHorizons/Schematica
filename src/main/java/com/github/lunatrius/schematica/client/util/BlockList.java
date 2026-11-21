@@ -12,7 +12,10 @@ import net.minecraft.init.Items;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemSlab;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraftforge.common.util.Constants;
 
 import com.github.lunatrius.schematica.client.compat.ArchitectureCraftSupport;
 import com.github.lunatrius.schematica.client.compat.CarpentersBlocksSupport;
@@ -290,14 +293,33 @@ public class BlockList {
                 return name + " (" + EnderIOSlabSupport.getPaintName(this.itemStack) + ")";
             }
             if (this.itemStack.hasTagCompound() && BlockToItemStack.isBanner(this.itemStack)) {
-                final List<String> patterns = new ArrayList<>();
-                this.itemStack.getItem()
-                    .addInformation(this.itemStack, null, patterns, false);
+                final List<String> patterns = getBannerPatternNames();
                 if (!patterns.isEmpty()) {
                     return name + " (" + String.join(", ", patterns) + ")";
                 }
             }
             return name;
+        }
+
+        private List<String> getBannerPatternNames() {
+            final List<String> names = new ArrayList<>();
+            final ItemStack sample = this.itemStack.copy();
+            final NBTTagCompound tile = sample.getTagCompound()
+                .getCompoundTag("BlockEntityTag");
+            final NBTTagList patterns = tile.getTagList("Patterns", Constants.NBT.TAG_COMPOUND);
+            // Et Futurum's tooltip lists six patterns, but imported banners can render more layers.
+            final int tooltipLimit = 6;
+            for (int start = 0; start < patterns.tagCount(); start += tooltipLimit) {
+                final NBTTagList batch = new NBTTagList();
+                final int end = Math.min(start + tooltipLimit, patterns.tagCount());
+                for (int i = start; i < end; i++) {
+                    batch.appendTag(patterns.getCompoundTagAt(i));
+                }
+                tile.setTag("Patterns", batch);
+                sample.getItem()
+                    .addInformation(sample, null, names, false);
+            }
+            return names;
         }
 
         public String getFormattedAmount() {

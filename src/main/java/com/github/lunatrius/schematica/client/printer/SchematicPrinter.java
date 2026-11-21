@@ -81,7 +81,6 @@ public class SchematicPrinter {
     public void refresh() {
         this.microblocks.reset();
         this.carpenters.reset();
-        this.architectureCraft.reset();
         if (this.schematic != null) {
             this.retryDelay = new byte[this.schematic.getWidth()][this.schematic.getHeight()][this.schematic
                 .getLength()];

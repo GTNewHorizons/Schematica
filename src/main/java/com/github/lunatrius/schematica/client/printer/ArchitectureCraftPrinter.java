@@ -1,7 +1,7 @@
 package com.github.lunatrius.schematica.client.printer;
 
-import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
 
 import net.minecraft.item.ItemStack;
@@ -16,11 +16,8 @@ import com.github.lunatrius.schematica.handler.ConfigurationHandler;
 final class ArchitectureCraftPrinter {
 
     private static final long TURN_ACK_TIMEOUT = TimeUnit.SECONDS.toNanos(5);
-    private final Map<TileEntity, PendingTurn> pendingTurns = new IdentityHashMap<>();
-
-    void reset() {
-        this.pendingTurns.clear();
-    }
+    // An outstanding click belongs to the live tile, even when the schematic is refreshed.
+    private final Map<TileEntity, PendingTurn> pendingTurns = new WeakHashMap<>();
 
     void beginPass(World world) {
         final long now = System.nanoTime();

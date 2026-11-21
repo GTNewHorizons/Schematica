@@ -102,6 +102,9 @@ public abstract class CommonProxy {
         return subDirectory;
     }
 
+    /** Client rebuilds the schematic render lists; nothing to do on a server. */
+    public void onRenderSettingsChanged() {}
+
     public void resetSettings() {
         this.isSaveEnabled = true;
         this.isLoadEnabled = true;

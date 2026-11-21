@@ -84,9 +84,11 @@ public class SchematicTransfer {
         for (int x = 0; x < this.width; x++) {
             for (int y = 0; y < this.height; y++) {
                 for (int z = 0; z < this.length; z++) {
-                    // Older clients keep four metadata bits and may save IDs in packed AddBlocks nibbles.
-                    if (this.schematic.getBlockMetadata(x, y, z) > 0xF
-                        || Block.getIdFromBlock(this.schematic.getBlock(x, y, z)) > 0xFFF) {
+                    final int blockId = Block.getIdFromBlock(this.schematic.getBlock(x, y, z));
+                    // Legacy clients truncate metadata and standard IDs. Their schemplus writer misencodes 256
+                    // multiples.
+                    if (this.schematic.getBlockMetadata(x, y, z) > 0xF || blockId > 0xFFF
+                        || (blockId != 0 && (blockId & 0xFF) == 0)) {
                         return true;
                     }
                 }

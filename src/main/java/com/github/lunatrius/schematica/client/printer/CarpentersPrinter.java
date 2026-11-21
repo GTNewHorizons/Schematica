@@ -12,6 +12,7 @@ import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.ChunkPosition;
 import net.minecraft.world.World;
@@ -74,9 +75,11 @@ final class CarpentersPrinter {
             return false;
         }
         final CarpentersHammerSupport.Adjustment adjustment = CarpentersHammerSupport
-            .findAdjustment(block, schematic, target, placed);
+            .findAdjustment(block, schematic, target, placed, interaction.player, interaction.blockReach());
         if (adjustment != null && adjustment.affected.stream()
-            .allMatch(piece -> CarpentersBlocksSupport.canConfigure(piece, interaction.player))
+            .allMatch(
+                piece -> !isWaiting(piece.xCoord, piece.yCoord, piece.zCoord)
+                    && CarpentersBlocksSupport.canConfigure(piece, interaction.player))
             && applyHammer(interaction, adjustment, x, y, z)) {
             final PendingClick click = new PendingClick(world, this.currentPass, () -> adjustment.isConfirmed(world));
             for (TileEntity piece : adjustment.affected) {
@@ -105,6 +108,19 @@ final class CarpentersPrinter {
         if (hammer == null || !interaction.selectItem(hammer)
             || !CarpentersHammerSupport.canUseHammer(interaction.player, interaction.world)) {
             return false;
+        }
+        if (adjustment.corner != null) {
+            final CarpentersHammerSupport.CornerHit corner = adjustment.corner;
+            final MovingObjectPosition hit = corner.hit;
+            final ItemStack held = interaction.player.getHeldItem();
+            return interaction.withSneaking(
+                false,
+                () -> interaction.withLook(
+                    corner.yaw,
+                    corner.pitch,
+                    () -> adjustment.click == CarpentersHammerSupport.Click.LEFT
+                        ? interaction.tapBlock(held, x, y, z, hit.sideHit)
+                        : interaction.useBlock(held, x, y, z, hit.sideHit, hit.hitVec)));
         }
         return useFace(
             interaction,
@@ -141,11 +157,40 @@ final class CarpentersPrinter {
         if (CarpentersBlocksSupport.isStairs(block) || CarpentersBlocksSupport.isSlope(block)) {
             return placeShape(interaction, x, y, z, block, tile, item);
         }
+        if (CarpentersBlocksSupport.isCollapsible(block)) {
+            return placeCollapsible(interaction, x, y, z, block, tile, item);
+        }
         final ForgeDirection face = CarpentersBlocksSupport.getAttachmentDirection(block, tile);
         if (face != null) {
             return placeSidedBlock(interaction, x, y, z, block, item, face);
         }
         return placeNormally.getAsBoolean();
+    }
+
+    private static boolean placeCollapsible(PrinterInteraction interaction, int x, int y, int z, Block block,
+        TileEntity tile, ItemStack item) {
+        final ForgeDirection face = CarpentersBlocksSupport.getCollapsibleDirection(tile);
+        if (face != ForgeDirection.UP && face != ForgeDirection.DOWN) {
+            return false;
+        }
+        final float yaw = interaction.player.rotationYaw;
+        if (canUseSupport(interaction, x, y, z, face, item)) {
+            return placeFromFace(interaction, x, y, z, block, item, face, true, 0.5, 0.5, yaw);
+        }
+        final ForgeDirection[] supports = interaction.findSupports(x, y, z);
+        for (ForgeDirection support : supports) {
+            final ForgeDirection side = support.getOpposite();
+            if (side.offsetY == 0 && canUseSupport(interaction, x, y, z, side, item)) {
+                final double height = face == ForgeDirection.UP ? 0.25 : 0.75;
+                return placeFromFace(interaction, x, y, z, block, item, side, true, 0.5, height, yaw);
+            }
+        }
+        final World world = interaction.world;
+        final boolean snowForcesUp = world.getBlock(x, y, z) == Blocks.snow_layer
+            && (world.getBlockMetadata(x, y, z) & 7) == 0;
+        return (!ConfigurationHandler.placeAdjacent || supports.length > 0)
+            && (face == ForgeDirection.UP || !snowForcesUp)
+            && placeFromFace(interaction, x, y, z, block, item, face, false, 0.5, 0.5, yaw);
     }
 
     private static boolean placeSidedBlock(PrinterInteraction interaction, int x, int y, int z, Block block,

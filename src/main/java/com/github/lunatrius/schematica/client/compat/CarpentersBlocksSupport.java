@@ -15,12 +15,14 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.carpentersblocks.block.BlockCarpentersBlock;
+import com.carpentersblocks.block.BlockCarpentersCollapsibleBlock;
 import com.carpentersblocks.block.BlockCarpentersGarageDoor;
 import com.carpentersblocks.block.BlockCarpentersLadder;
 import com.carpentersblocks.block.BlockCarpentersSlope;
 import com.carpentersblocks.block.BlockCarpentersStairs;
 import com.carpentersblocks.block.BlockCarpentersTorch;
 import com.carpentersblocks.block.BlockCoverable;
+import com.carpentersblocks.data.Collapsible;
 import com.carpentersblocks.data.GarageDoor;
 import com.carpentersblocks.data.Ladder;
 import com.carpentersblocks.data.Slope;
@@ -55,6 +57,14 @@ public final class CarpentersBlocksSupport {
 
     public static boolean isStairs(Block block) {
         return block instanceof BlockCarpentersStairs;
+    }
+
+    public static boolean isCollapsible(Block block) {
+        return block instanceof BlockCarpentersCollapsibleBlock;
+    }
+
+    public static ForgeDirection getCollapsibleDirection(TileEntity tile) {
+        return tile instanceof TEBase carpenter ? Collapsible.INSTANCE.getDirection(carpenter) : ForgeDirection.UNKNOWN;
     }
 
     public static boolean isGarageDoor(Block block) {
@@ -163,7 +173,7 @@ public final class CarpentersBlocksSupport {
     }
 
     public static boolean passesThroughMicroblockClick(Block block) {
-        return block instanceof BlockCarpentersBlock || isStairs(block);
+        return block instanceof BlockCarpentersBlock || isStairs(block) || isCollapsible(block);
     }
 
     public static boolean allowsPlacementClick(Block clicked, ItemStack stack, boolean sneaking) {
@@ -238,6 +248,9 @@ public final class CarpentersBlocksSupport {
         if (isGarageDoor(block)) {
             return GarageDoor.INSTANCE.getDirection(actual) == GarageDoor.INSTANCE.getDirection(expected)
                 && GarageDoor.INSTANCE.isHost(actual) == GarageDoor.INSTANCE.isHost(expected);
+        }
+        if (isCollapsible(block)) {
+            return getCollapsibleDirection(actual) == getCollapsibleDirection(expected);
         }
         return !(block instanceof BlockCarpentersBlock || block instanceof BlockCarpentersSlope || isStairs(block))
             || actual.getData() == expected.getData();

@@ -13,6 +13,7 @@ import net.minecraft.init.Items;
 import net.minecraft.item.ItemBucket;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.C03PacketPlayer.C05PacketPlayerLook;
+import net.minecraft.network.play.client.C07PacketPlayerDigging;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
 import net.minecraft.network.play.client.C0BPacketEntityAction;
 import net.minecraft.util.Vec3;
@@ -46,6 +47,10 @@ final class PrinterInteraction {
         this.player = player;
         this.controller = controller;
         this.inventory = player.inventory;
+    }
+
+    double blockReach() {
+        return this.controller.getBlockReachDistance();
     }
 
     boolean canSelectItem(ItemStack item) {
@@ -196,6 +201,24 @@ final class PrinterInteraction {
                 (float) (hit.xCoord - x),
                 (float) (hit.yCoord - y),
                 (float) (hit.zCoord - z)));
+        this.player.swingItem();
+        return true;
+    }
+
+    boolean tapBlock(ItemStack held, int x, int y, int z, int side) {
+        if (!isStillHolding(held) || (!this.controller.isInCreativeMode() && this.world.getBlock(x, y, z)
+            .getPlayerRelativeBlockHardness(this.player, this.world, x, y, z) >= 1)) {
+            return false;
+        }
+        this.controller.syncCurrentPlayItem();
+        final PlayerInteractEvent event = ForgeEventFactory
+            .onPlayerInteract(this.player, Action.LEFT_CLICK_BLOCK, x, y, z, side, this.world);
+        if (event.isCanceled() || event.useBlock == Result.DENY || !isStillHolding(held)) {
+            return false;
+        }
+        // Carpenter's handles the hammer on the first click. Abort before mining can progress.
+        this.player.sendQueue.addToSendQueue(new C07PacketPlayerDigging(0, x, y, z, side));
+        this.player.sendQueue.addToSendQueue(new C07PacketPlayerDigging(1, x, y, z, side));
         this.player.swingItem();
         return true;
     }

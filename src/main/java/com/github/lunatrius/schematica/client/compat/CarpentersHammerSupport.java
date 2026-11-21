@@ -1,5 +1,6 @@
 package com.github.lunatrius.schematica.client.compat;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -12,6 +13,8 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -20,6 +23,7 @@ import com.carpentersblocks.block.BlockCarpentersBarrier;
 import com.carpentersblocks.block.BlockCarpentersBed;
 import com.carpentersblocks.block.BlockCarpentersBlock;
 import com.carpentersblocks.block.BlockCarpentersButton;
+import com.carpentersblocks.block.BlockCarpentersCollapsibleBlock;
 import com.carpentersblocks.block.BlockCarpentersDaylightSensor;
 import com.carpentersblocks.block.BlockCarpentersDoor;
 import com.carpentersblocks.block.BlockCarpentersFlowerPot;
@@ -36,6 +40,7 @@ import com.carpentersblocks.block.BlockCarpentersTorch;
 import com.carpentersblocks.data.Barrier;
 import com.carpentersblocks.data.Bed;
 import com.carpentersblocks.data.Button;
+import com.carpentersblocks.data.Collapsible;
 import com.carpentersblocks.data.DaylightSensor;
 import com.carpentersblocks.data.GarageDoor;
 import com.carpentersblocks.data.Gate;
@@ -50,6 +55,7 @@ import com.carpentersblocks.data.Slope;
 import com.carpentersblocks.data.Stairs;
 import com.carpentersblocks.data.Torch;
 import com.carpentersblocks.tileentity.TEBase;
+import com.carpentersblocks.util.collapsible.CollapsibleUtil;
 import com.carpentersblocks.util.handler.DesignHandler;
 import com.carpentersblocks.util.registry.FeatureRegistry;
 import com.carpentersblocks.util.registry.ItemRegistry;
@@ -64,6 +70,8 @@ public final class CarpentersHammerSupport {
     private static final PressurePlate PRESSURE_PLATE = new PressurePlate();
     private static final Button BUTTON = new Button();
     private static final Lever LEVER = new Lever();
+    private static final double[] CORNER_SAMPLES = { 0.5, 0.0625, 0.9375 };
+    private static final double[] CORNER_HEIGHTS = { 0.5, 1, 0 };
 
     private static final BlockSettings NO_SETTINGS = new BlockSettings(Block.class);
     // Settings are ordered by the sequence in which the hammer should adjust them.
@@ -100,6 +108,7 @@ public final class CarpentersHammerSupport {
             toggle(PRESSURE_PLATE::getPolarity, Click.MANUAL)),
         new BlockSettings(BlockCarpentersButton.class, toggle(BUTTON::getPolarity, Click.MANUAL)),
         new BlockSettings(BlockCarpentersLever.class, toggle(LEVER::getPolarity, Click.MANUAL)),
+        new BlockSettings(BlockCarpentersCollapsibleBlock.class, toggle(TEBase::getData, Click.MANUAL)),
         new BlockSettings(
             BlockCarpentersSafe.class,
             toggle(Safe::isLocked, Click.SNEAK_RIGHT),
@@ -141,13 +150,16 @@ public final class CarpentersHammerSupport {
             && hammer.canUseHammer(world, player);
     }
 
-    public static Adjustment findAdjustment(Block block, SchematicWorld schematic, TileEntity target,
-        TileEntity placed) {
+    public static Adjustment findAdjustment(Block block, SchematicWorld schematic, TileEntity target, TileEntity placed,
+        EntityPlayer player, double reach) {
         if (!(target instanceof TEBase expected) || !(placed instanceof TEBase actual)) {
             return null;
         }
 
         final BlockSettings settings = settingsFor(block);
+        if (CarpentersBlocksSupport.isCollapsible(block)) {
+            return findCollapsibleAdjustment(block, schematic, expected, actual, player, Math.min(5, reach), settings);
+        }
         Click click = settings.findClick(expected, actual);
         ForgeDirection face = ForgeDirection.UP;
         if (block instanceof BlockCarpentersBlock && expected.getData() != actual.getData()
@@ -184,7 +196,97 @@ public final class CarpentersHammerSupport {
                 return null;
             }
         }
-        return new Adjustment(click, face.ordinal(), affected, block, actual, settings);
+        return new Adjustment(click, face.ordinal(), affected, block, actual, settings, null);
+    }
+
+    private static Adjustment findCollapsibleAdjustment(Block block, SchematicWorld schematic, TEBase expected,
+        TEBase actual, EntityPlayer player, double reach, BlockSettings settings) {
+        if (CarpentersBlocksSupport.getCollapsibleDirection(expected)
+            != CarpentersBlocksSupport.getCollapsibleDirection(actual)) {
+            return null;
+        }
+        final boolean positive = Collapsible.INSTANCE.isPositive(actual);
+        for (int quad = 0; quad < 4; quad++) {
+            final int goal = Collapsible.getQuadDepth(expected, quad);
+            final int depth = Collapsible.getQuadDepth(actual, quad);
+            if (depth == goal) {
+                continue;
+            }
+            final int nextDepth = depth + Integer.signum(goal - depth);
+            final Collection<TEBase> affected = collapsibleNeighbors(block, schematic, actual, quad, goal, nextDepth);
+            if (affected.isEmpty()) {
+                continue;
+            }
+            final CornerHit hit = findCornerHit(actual, player, reach, quad, nextDepth);
+            if (hit != null) {
+                final Click click = (goal > depth) == positive ? Click.RIGHT : Click.LEFT;
+                return new Adjustment(click, hit.hit.sideHit, affected, block, actual, settings, hit);
+            }
+        }
+        return null;
+    }
+
+    private static Collection<TEBase> collapsibleNeighbors(Block block, SchematicWorld schematic, TEBase actual,
+        int quad, int goal, int nextDepth) {
+        final World world = actual.getWorldObj();
+        final Collection<TEBase> affected = new ArrayList<>();
+        affected.add(actual);
+        // Carpenter's smooths this corner into the three neighbors that share it.
+        for (int neighbor = 1; neighbor < 4; neighbor++) {
+            final int x = actual.xCoord + ((neighbor & 2) == 0 ? 0 : (quad & 2) == 0 ? -1 : 1);
+            final int y = actual.yCoord;
+            final int z = actual.zCoord + ((neighbor & 1) == 0 ? 0 : (quad & 1) == 0 ? -1 : 1);
+            final int neighborQuad = quad ^ neighbor;
+            if (world.getBlock(x, y, z) != block || !(world.getTileEntity(x, y, z) instanceof TEBase other)
+                || !Collapsible.INSTANCE.match(actual, other)
+                || Collapsible.getQuadDepth(other, neighborQuad) == nextDepth) {
+                continue;
+            }
+            final int sx = x - schematic.position.x;
+            final int sy = y - schematic.position.y;
+            final int sz = z - schematic.position.z;
+            if (schematic.getBlockIncludingHiddenLayers(sx, sy, sz) != block
+                || !(schematic.getTileEntity(sx, sy, sz) instanceof TEBase saved)
+                || !Collapsible.INSTANCE.match(other, saved)
+                || Collapsible.getQuadDepth(saved, neighborQuad) != goal) {
+                return Collections.emptyList();
+            }
+            affected.add(other);
+        }
+        return affected;
+    }
+
+    private static CornerHit findCornerHit(TEBase tile, EntityPlayer player, double reach, int quad, int nextDepth) {
+        final World world = tile.getWorldObj();
+        final float[] bounds = CollapsibleUtil.genBounds(tile, quad);
+        // Carpenter's gets the quadrant from a fresh server-side trace of the player's normal click.
+        final Vec3 eye = Vec3.createVectorHelper(player.posX, player.boundingBox.minY + 1.62F, player.posZ);
+        for (double u : CORNER_SAMPLES) {
+            for (double v : CORNER_SAMPLES) {
+                for (double h : CORNER_HEIGHTS) {
+                    final double dx = tile.xCoord + bounds[0] + (bounds[3] - bounds[0]) * u - eye.xCoord;
+                    final double dy = tile.yCoord + bounds[1] + (bounds[4] - bounds[1]) * h - eye.yCoord;
+                    final double dz = tile.zCoord + bounds[2] + (bounds[5] - bounds[2]) * v - eye.zCoord;
+                    final double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                    if (distance == 0 || distance > reach) {
+                        continue;
+                    }
+                    final double scale = reach / distance;
+                    final MovingObjectPosition hit = world
+                        .rayTraceBlocks(eye.addVector(0, 0, 0), eye.addVector(dx * scale, dy * scale, dz * scale));
+                    if (hit != null && hit.blockX == tile.xCoord
+                        && hit.blockY == tile.yCoord
+                        && hit.blockZ == tile.zCoord
+                        && Collapsible.getQuad(hit.hitVec.xCoord - tile.xCoord, hit.hitVec.zCoord - tile.zCoord)
+                            == quad) {
+                        final float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+                        final float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.hypot(dx, dz)));
+                        return new CornerHit(hit, yaw, pitch, quad, nextDepth);
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     private static Collection<TEBase> affectedBlocks(Block block, TEBase actual, TEBase expected, Click click) {
@@ -383,8 +485,32 @@ public final class CarpentersHammerSupport {
 
     public enum Click {
         MANUAL,
+        LEFT,
         RIGHT,
         SNEAK_RIGHT
+    }
+
+    public static final class CornerHit {
+
+        public final MovingObjectPosition hit;
+        public final float yaw;
+        public final float pitch;
+        private final int quad;
+        private final int nextDepth;
+
+        private CornerHit(MovingObjectPosition hit, float yaw, float pitch, int quad, int nextDepth) {
+            this.hit = hit;
+            this.yaw = yaw;
+            this.pitch = pitch;
+            this.quad = quad;
+            this.nextDepth = nextDepth;
+        }
+
+        private boolean matches(TEBase clicked, TEBase actual) {
+            final int quad = this.quad ^ (actual.xCoord == clicked.xCoord ? 0 : 2)
+                ^ (actual.zCoord == clicked.zCoord ? 0 : 1);
+            return Collapsible.getQuadDepth(actual, quad) == this.nextDepth;
+        }
     }
 
     public static final class Adjustment {
@@ -392,6 +518,7 @@ public final class CarpentersHammerSupport {
         public final Click click;
         public final int face;
         public final Collection<? extends TileEntity> affected;
+        public final CornerHit corner;
 
         private final Block block;
         private final TEBase clicked;
@@ -399,7 +526,7 @@ public final class CarpentersHammerSupport {
         private final Object[] previousState;
 
         private Adjustment(Click click, int face, Collection<TEBase> affected, Block block, TEBase clicked,
-            BlockSettings settings) {
+            BlockSettings settings, CornerHit corner) {
             this.click = click;
             this.face = face;
             this.affected = affected;
@@ -407,6 +534,7 @@ public final class CarpentersHammerSupport {
             this.clicked = clicked;
             this.settings = settings;
             this.previousState = settings.snapshot(clicked);
+            this.corner = corner;
         }
 
         public boolean isConfirmed(World world) {
@@ -423,7 +551,8 @@ public final class CarpentersHammerSupport {
             for (TileEntity piece : this.affected) {
                 if (world.getBlock(piece.xCoord, piece.yCoord, piece.zCoord) != this.block
                     || !(world.getTileEntity(piece.xCoord, piece.yCoord, piece.zCoord) instanceof TEBase updated)
-                    || !this.settings.matches(updated, state)) {
+                    || !(this.corner == null ? this.settings.matches(updated, state)
+                        : this.corner.matches(this.clicked, updated))) {
                     return false;
                 }
             }

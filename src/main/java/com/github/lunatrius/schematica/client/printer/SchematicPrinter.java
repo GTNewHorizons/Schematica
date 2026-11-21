@@ -328,7 +328,7 @@ public class SchematicPrinter {
 
         final float offsetY = data == null || data.maskOffset == 0 ? 0.5f : data.getOffsetFromMetadata(metadata);
         final int extraClicks = data == null ? 0 : data.getExtraClicks(block, metadata);
-        return interaction.selectItem(itemStack)
+        return interaction.selectBlockItem(itemStack)
             && placeAgainstSupport(interaction, x, y, z, direction, adjacent, offsetY, extraClicks);
     }
 

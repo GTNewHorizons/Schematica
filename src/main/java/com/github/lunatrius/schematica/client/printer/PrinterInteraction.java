@@ -49,19 +49,30 @@ final class PrinterInteraction {
     }
 
     boolean canSelectItem(ItemStack item) {
-        final int slot = findItemSlot(item);
+        final int slot = findItemSlot(item, false);
         return (slot >= 0 && slot < Constants.Inventory.Size.HOTBAR)
             || (!ConfigurationHandler.swapSlotsQueue.isEmpty() && (this.controller.isInCreativeMode()
                 || (slot >= 0 && this.player.openContainer == this.player.inventoryContainer)));
     }
 
     boolean selectItem(ItemStack item) {
-        return selectItem(item, true) && this.inventory.getCurrentItem() != null
-            && BlockToItemStack.matches(this.inventory.getCurrentItem(), item);
+        return selectItem(item, false);
     }
 
-    private boolean selectItem(ItemStack item, boolean allowInventorySwap) {
-        final int slot = findItemSlot(item);
+    boolean selectBlockItem(ItemStack item) {
+        return selectItem(item, true);
+    }
+
+    private boolean selectItem(ItemStack item, boolean blockStock) {
+        if (!selectItem(item, blockStock, true)) {
+            return false;
+        }
+        final ItemStack selected = this.inventory.getCurrentItem();
+        return selected != null && matchesSelection(selected, item, blockStock);
+    }
+
+    private boolean selectItem(ItemStack item, boolean blockStock, boolean allowInventorySwap) {
+        final int slot = findItemSlot(item, blockStock);
         final boolean inHotbar = slot >= Constants.Inventory.InventoryOffset.HOTBAR
             && slot < Constants.Inventory.InventoryOffset.HOTBAR + Constants.Inventory.Size.HOTBAR;
 
@@ -81,10 +92,10 @@ final class PrinterInteraction {
         return allowInventorySwap && slot >= Constants.Inventory.InventoryOffset.INVENTORY
             && slot < Constants.Inventory.InventoryOffset.INVENTORY + Constants.Inventory.Size.INVENTORY
             && swapIntoHotbar(slot)
-            && selectItem(item, false);
+            && selectItem(item, blockStock, false);
     }
 
-    private int findItemSlot(ItemStack item) {
+    private int findItemSlot(ItemStack item, boolean blockStock) {
         final boolean shape = Mods.ARCHITECTURE_CRAFT && ArchitectureCraftSupport.isShapeItem(item);
         final int connections = shape ? ArchitectureCraftSupport.getDisabledConnections(item) : 0;
         final boolean canSwap = !ConfigurationHandler.swapSlotsQueue.isEmpty()
@@ -92,7 +103,7 @@ final class PrinterInteraction {
         int fallback = -1;
         for (int i = 0; i < this.inventory.mainInventory.length; i++) {
             final ItemStack stack = this.inventory.mainInventory[i];
-            if (stack != null && stack.stackSize > 0 && BlockToItemStack.matches(stack, item)) {
+            if (stack != null && stack.stackSize > 0 && matchesSelection(stack, item, blockStock)) {
                 if (!shape || (ArchitectureCraftSupport.getDisabledConnections(stack) == connections
                     && (i < Constants.Inventory.Size.HOTBAR || canSwap))) {
                     return i;
@@ -105,6 +116,10 @@ final class PrinterInteraction {
         // Creative can make an exact stack. Survival can use the sawbench shape and adjust its connections by hand.
         return shape && this.controller.isInCreativeMode() && !ConfigurationHandler.swapSlotsQueue.isEmpty() ? -1
             : fallback;
+    }
+
+    private static boolean matchesSelection(ItemStack stack, ItemStack target, boolean blockStock) {
+        return blockStock ? BlockToItemStack.matchesBlockStock(stack, target) : BlockToItemStack.matches(stack, target);
     }
 
     private boolean swapIntoHotbar(int sourceSlot) {

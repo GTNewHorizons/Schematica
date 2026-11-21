@@ -10,12 +10,14 @@ import net.minecraft.init.Items;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTUtil;
 import net.minecraft.tileentity.TileEntitySkull;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraftforge.common.util.Constants;
 
 import com.github.lunatrius.schematica.client.compat.ArchitectureCraftSupport;
 import com.github.lunatrius.schematica.client.compat.CarpentersBlocksSupport;
@@ -27,6 +29,8 @@ import com.google.common.collect.Iterables;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.MinecraftProfileTexture;
 import com.mojang.authlib.properties.Property;
+
+import cpw.mods.fml.common.registry.GameRegistry;
 
 public class BlockToItemStack {
 
@@ -87,7 +91,22 @@ public class BlockToItemStack {
     }
 
     public static boolean matches(ItemStack stack, ItemStack target) {
-        if (!stack.isItemEqual(target)) {
+        return matches(stack, target, false);
+    }
+
+    public static boolean matchesBlockStock(ItemStack stack, ItemStack target) {
+        return matches(stack, target, true);
+    }
+
+    private static boolean matches(ItemStack stack, ItemStack target, boolean blockStock) {
+        if (stack.getItem() != target.getItem()) {
+            return false;
+        }
+        if ((stack.hasTagCompound() || target.hasTagCompound())
+            && target.getItem() == GameRegistry.findItem("etfuturum", "banner")) {
+            return matchesBanner(stack, target);
+        }
+        if (stack.getItemDamage() != target.getItemDamage()) {
             return false;
         }
         if (isPlayerHead(target)) {
@@ -106,8 +125,27 @@ public class BlockToItemStack {
         if (Mods.ENDER_IO && EnderIOSlabSupport.isPaintedSlab(Block.getBlockFromItem(target.getItem()))) {
             return EnderIOSlabSupport.itemsMatch(stack, target);
         }
-        return ItemStack.areItemStackTagsEqual(stack, target)
-            || (hasOnlyCosmeticTags(stack) && hasOnlyCosmeticTags(target));
+        // Ordinary block picks can omit per-item data from stock, such as a dropped machine's configuration.
+        return ItemStack.areItemStackTagsEqual(stack, target) || (hasOnlyCosmeticTags(target)
+            && (hasOnlyCosmeticTags(stack) || (blockStock && target.getItem() instanceof ItemBlock)));
+    }
+
+    private static boolean matchesBanner(ItemStack stack, ItemStack target) {
+        final NBTTagCompound actual = stack.hasTagCompound() ? stack.getTagCompound()
+            .getCompoundTag("BlockEntityTag") : new NBTTagCompound();
+        final NBTTagCompound expected = target.hasTagCompound() ? target.getTagCompound()
+            .getCompoundTag("BlockEntityTag") : new NBTTagCompound();
+        if (bannerColor(stack, actual) != bannerColor(target, expected)) {
+            return false;
+        }
+        final NBTTagList patterns = actual.getTagList("Patterns", Constants.NBT.TAG_COMPOUND);
+        final NBTTagList expectedPatterns = expected.getTagList("Patterns", Constants.NBT.TAG_COMPOUND);
+        return patterns.equals(expectedPatterns) || (patterns.tagCount() == 0 && expectedPatterns.tagCount() == 0);
+    }
+
+    private static int bannerColor(ItemStack stack, NBTTagCompound tile) {
+        return tile.hasKey("Base", Constants.NBT.TAG_ANY_NUMERIC) ? tile.getInteger("Base")
+            : stack.getItemDamage() & 15;
     }
 
     private static boolean isPlayerHead(ItemStack stack) {

@@ -83,7 +83,7 @@ public class BlockList {
                             : null;
                     final boolean complete = placed != null && BlockToItemStack.matches(placed, stack)
                         && (!garageDoor || CarpentersBlocksSupport.isGarageDoorHost(mcWorld.getTileEntity(wx, wy, wz)));
-                    addMaterial(blockList, stack, 1, complete);
+                    addMaterial(blockList, stack, 1, complete).pickedBlock = true;
                     if (block instanceof BlockSlab && block.isOpaqueCube() && stack.getItem() instanceof ItemSlab) {
                         addMaterial(
                             blockList,
@@ -141,7 +141,9 @@ public class BlockList {
                 wrappedItemStack.inventory = -1;
             } else {
                 for (ItemStack stack : player.inventory.mainInventory) {
-                    if (stack != null && BlockToItemStack.matches(stack, target)) {
+                    if (stack != null
+                        && (wrappedItemStack.pickedBlock ? BlockToItemStack.matchesBlockStock(stack, target)
+                            : BlockToItemStack.matches(stack, target))) {
                         wrappedItemStack.inventory += stack.stackSize;
                     }
                 }
@@ -218,6 +220,7 @@ public class BlockList {
         public int total;
         public int inventory;
         private int kitchenDyesNeeded;
+        private boolean pickedBlock;
 
         public WrappedItemStack(final ItemStack itemStack) {
             this(itemStack, 0, 0);

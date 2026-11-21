@@ -8,6 +8,7 @@ import net.minecraft.block.BlockSlab;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemSlab;
 import net.minecraft.item.ItemStack;
@@ -195,6 +196,11 @@ public class SchematicPrinter {
             return false;
         }
 
+        // Native slab merges cannot recreate the seamless double-stone-slab variant.
+        if (block == Blocks.double_stone_slab && (metadata & 8) != 0) {
+            return false;
+        }
+
         if (block instanceof BlockSlab && block.isOpaqueCube()
             && placedBlock instanceof BlockSlab
             && !placedBlock.isOpaqueCube()) {
@@ -291,6 +297,12 @@ public class SchematicPrinter {
 
         final boolean adjacent = direction != ForgeDirection.UNKNOWN;
         if (!adjacent) {
+            if (halfSlab && (metadata & 8) != 0
+                && world.getBlock(x, y, z) == Blocks.snow_layer
+                && (world.getBlockMetadata(x, y, z) & 7) == 0) {
+                // ItemBlock forces an upward placement click when replacing a snow layer.
+                return false;
+            }
             final boolean needsMappedSupport = data != null && data.type == PlacementData.PlacementType.BLOCK
                 && !data.mapping.isEmpty()
                 && !(block instanceof BlockRotatedPillar || block instanceof BlockHopper);

@@ -234,7 +234,7 @@ public class BlockList {
 
         public String getItemStackDisplayName() {
             final String name = this.itemStack.getDisplayName();
-            if (Mods.ARCHITECTURE_CRAFT && ArchitectureCraftSupport.isShapeItem(this.itemStack)) {
+            if (Mods.ARCHITECTURE_CRAFT) {
                 final String material = ArchitectureCraftSupport.getMaterialName(this.itemStack);
                 if (!material.isEmpty()) {
                     return name + " (" + material + ")";

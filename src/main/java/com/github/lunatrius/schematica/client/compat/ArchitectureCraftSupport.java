@@ -12,6 +12,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import gcewing.architecture.ArchitectureCraft;
 import gcewing.architecture.common.block.BlockShape;
+import gcewing.architecture.common.item.ItemCladding;
 import gcewing.architecture.common.shape.Shape;
 import gcewing.architecture.common.shape.ShapeItem;
 import gcewing.architecture.common.shape.ShapeSymmetry;
@@ -39,6 +40,14 @@ public final class ArchitectureCraftSupport {
     }
 
     public static String getMaterialName(ItemStack stack) {
+        if (stack.getItem() instanceof ItemCladding cladding) {
+            final IBlockState material = cladding.blockStateFromStack(stack);
+            return material == null ? ""
+                : Utils.displayNameOfBlock(material.getBlock(), BlockCompatUtils.getMetaFromBlockState(material));
+        }
+        if (!isShapeItem(stack)) {
+            return "";
+        }
         final NBTTagCompound tag = stack.getTagCompound();
         final Block base = tag == null ? null : Block.getBlockFromName(tag.getString("BaseName"));
         return base == null ? "" : Utils.displayNameOfBlock(base, tag.getInteger("BaseData"));

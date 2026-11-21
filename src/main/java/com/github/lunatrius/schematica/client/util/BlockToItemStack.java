@@ -11,6 +11,7 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
 import com.github.lunatrius.schematica.client.compat.ArchitectureCraftSupport;
+import com.github.lunatrius.schematica.client.compat.CarpentersBlocksSupport;
 import com.github.lunatrius.schematica.client.compat.EnderIOSlabSupport;
 import com.github.lunatrius.schematica.client.compat.MicroblockSupport;
 import com.github.lunatrius.schematica.reference.Mods;
@@ -21,6 +22,9 @@ public class BlockToItemStack {
     public static ItemStack getItemStack(final EntityPlayer player, final Block block, final World world, final int x,
         final int y, final int z) {
         try {
+            if (Mods.CARPENTERS_BLOCKS && CarpentersBlocksSupport.isSlope(block)) {
+                return CarpentersBlocksSupport.getSlopeItem(block, world.getTileEntity(x, y, z));
+            }
             if (Mods.ENDER_IO && EnderIOSlabSupport.isPaintedSlab(block)) {
                 return EnderIOSlabSupport.getItem(world.getTileEntity(x, y, z));
             }

@@ -39,6 +39,11 @@ public final class CarpentersBlocksSupport {
     private static final int BASE = 6;
     private static final byte[][] SURFACE_ATTRIBUTES = { TEBase.ATTR_COVER, TEBase.ATTR_DYE, TEBase.ATTR_OVERLAY };
     private static final int[] TOP_BOTTOM_FACING = { 0, 3, 1, 2 };
+    private static final int[] SLOPE_CORNERS = { 2, 0, 3, 1 };
+    private static final int[] WEDGE_NEAR = { Slope.ID_WEDGE_NW, Slope.ID_WEDGE_SE, Slope.ID_WEDGE_SW,
+        Slope.ID_WEDGE_NE };
+    private static final int[] WEDGE_FAR = { Slope.ID_WEDGE_NE, Slope.ID_WEDGE_SW, Slope.ID_WEDGE_NW,
+        Slope.ID_WEDGE_SE };
     private static final Ladder LADDER = new Ladder();
     private static final Torch TORCH = new Torch();
 
@@ -74,61 +79,82 @@ public final class CarpentersBlocksSupport {
         return block instanceof BlockCarpentersLadder && direction.offsetY != 0;
     }
 
-    public static Float getWedgeYaw(Block block, TileEntity tile, ItemStack item) {
-        if (!(block instanceof BlockCarpentersSlope) || !(tile instanceof TEBase slope)
-            || item.getItemDamage() != BlockCarpentersSlope.META_WEDGE) {
+    public static boolean isSlope(Block block) {
+        return block instanceof BlockCarpentersSlope;
+    }
+
+    public static ItemStack getSlopeItem(Block block, TileEntity tile) {
+        if (!(tile instanceof TEBase slope) || slope.getData() < 0 || slope.getData() > Slope.ID_PRISM_WEDGE_POS_E) {
             return null;
         }
-        return switch (slope.getData()) {
-            case Slope.ID_WEDGE_NEG_N, Slope.ID_WEDGE_POS_N -> 0f;
-            case Slope.ID_WEDGE_NEG_E, Slope.ID_WEDGE_POS_E -> 90f;
-            case Slope.ID_WEDGE_NEG_S, Slope.ID_WEDGE_POS_S -> 180f;
-            case Slope.ID_WEDGE_NEG_W, Slope.ID_WEDGE_POS_W -> 270f;
-            default -> null;
-        };
-    }
-
-    public static ForgeDirection getWedgeFace(TileEntity tile) {
-        return ((TEBase) tile).getData() <= Slope.ID_WEDGE_NEG_E ? ForgeDirection.DOWN : ForgeDirection.UP;
-    }
-
-    public static ForgeDirection getWedgeWallFace(TileEntity tile) {
-        return ForgeDirection.getOrientation(2 + (((TEBase) tile).getData() & 3));
-    }
-
-    public static boolean canReshapeOppositeWedge(TileEntity tile) {
-        final int expected = ((TEBase) tile).getData();
-        return CarpentersHammerSupport.canReshapeSlope(expected, expected ^ 12);
-    }
-
-    public static boolean isSideWedge(Block block, TileEntity tile, ItemStack item) {
-        return block instanceof BlockCarpentersSlope && tile instanceof TEBase slope
-            && item.getItemDamage() == BlockCarpentersSlope.META_WEDGE
-            && slope.getData() >= Slope.ID_WEDGE_SE
-            && slope.getData() <= Slope.ID_WEDGE_SW;
-    }
-
-    public static double getSideWedgeHit(TileEntity tile, ForgeDirection face) {
-        final int expected = ((TEBase) tile).getData();
-        final int near = switch (face) {
-            case NORTH -> Slope.ID_WEDGE_NW;
-            case SOUTH -> Slope.ID_WEDGE_SE;
-            case WEST -> Slope.ID_WEDGE_SW;
-            case EAST -> Slope.ID_WEDGE_NE;
-            default -> -1;
-        };
-        final int far = switch (face) {
-            case NORTH -> Slope.ID_WEDGE_NE;
-            case SOUTH -> Slope.ID_WEDGE_SW;
-            case WEST -> Slope.ID_WEDGE_NW;
-            case EAST -> Slope.ID_WEDGE_SE;
-            default -> -1;
-        };
-        if (expected != near && expected != far) {
-            return 0;
+        final int data = slope.getData();
+        final int subtype;
+        if (data >= Slope.ID_PRISM_WEDGE_POS_N) {
+            subtype = BlockCarpentersSlope.META_PRISM_SLOPE;
+        } else if (data >= Slope.ID_PRISM_NEG) {
+            subtype = BlockCarpentersSlope.META_PRISM;
+        } else if (data >= Slope.ID_OBL_EXT_NEG_SE) {
+            subtype = BlockCarpentersSlope.META_OBLIQUE_EXT;
+        } else if (data >= Slope.ID_OBL_INT_NEG_SE) {
+            subtype = BlockCarpentersSlope.META_OBLIQUE_INT;
+        } else {
+            subtype = BlockCarpentersSlope.META_WEDGE;
         }
-        final boolean reversed = face == ForgeDirection.NORTH || face == ForgeDirection.EAST;
-        return (expected == near) != reversed ? 0.125 : 0.875;
+        return new ItemStack(block, 1, subtype);
+    }
+
+    public static ItemStack getWedgeItem(ItemStack slope) {
+        return new ItemStack(slope.getItem(), 1, BlockCarpentersSlope.META_WEDGE);
+    }
+
+    public static boolean matchesSlopePlacement(TileEntity tile, ItemStack item, ForgeDirection face, float hitX,
+        float hitY, float hitZ, float yaw, boolean allowReshape) {
+        if (!(tile instanceof TEBase expected)) {
+            return false;
+        }
+        final int facing = MathHelper.floor_double(yaw * 4.0F / 360.0F + 0.5D) & 3;
+        final int corner = SLOPE_CORNERS[MathHelper.floor_double(yaw * 4.0F / 360.0F) & 3];
+        final boolean positive = face == ForgeDirection.UP || (face.offsetY == 0 && hitY < 0.5f);
+        // Sneaking disables native neighbor reshaping during placement.
+        final int initial = switch (item.getItemDamage()) {
+            case BlockCarpentersSlope.META_WEDGE -> wedgePlacement(face, hitX, hitY, hitZ, facing);
+            case BlockCarpentersSlope.META_OBLIQUE_INT -> (positive ? Slope.ID_OBL_INT_POS_SE : Slope.ID_OBL_INT_NEG_SE)
+                + corner;
+            case BlockCarpentersSlope.META_OBLIQUE_EXT -> (positive ? Slope.ID_OBL_EXT_POS_SE : Slope.ID_OBL_EXT_NEG_SE)
+                + corner;
+            case BlockCarpentersSlope.META_PRISM -> positive ? Slope.ID_PRISM_POS : Slope.ID_PRISM_NEG;
+            case BlockCarpentersSlope.META_PRISM_SLOPE -> Slope.ID_PRISM_WEDGE_POS_N + TOP_BOTTOM_FACING[facing];
+            default -> -1;
+        };
+        return initial >= 0 && (initial == expected.getData()
+            || (allowReshape && CarpentersHammerSupport.canReshapeSlope(expected.getData(), initial)));
+    }
+
+    private static int wedgePlacement(ForgeDirection face, float hitX, float hitY, float hitZ, int facing) {
+        if (face.offsetY != 0) {
+            final int base = face == ForgeDirection.UP ? Slope.ID_WEDGE_POS_N : Slope.ID_WEDGE_NEG_N;
+            return base + TOP_BOTTOM_FACING[facing];
+        }
+        final float across = switch (face) {
+            case NORTH -> 1 - hitX;
+            case WEST -> hitZ;
+            case EAST -> 1 - hitZ;
+            default -> hitX;
+        };
+        final int side = face.ordinal();
+        if (hitY > 0.5f && across > 1 - hitY && across < hitY) {
+            return side + 2;
+        }
+        if (hitY < 0.5f && across < 1 - hitY && across > hitY) {
+            return side + 6;
+        }
+        if (across < 0.2f) {
+            return WEDGE_NEAR[side - 2];
+        }
+        if (across > 0.8f) {
+            return WEDGE_FAR[side - 2];
+        }
+        return side + (hitY > 0.5f ? 2 : 6);
     }
 
     public static boolean canConfigure(TileEntity tile, EntityPlayer player) {

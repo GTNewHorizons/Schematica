@@ -2,6 +2,7 @@ package com.github.lunatrius.schematica.network.message;
 
 import com.github.lunatrius.schematica.Schematica;
 import com.github.lunatrius.schematica.client.printer.SchematicPrinter;
+import com.github.lunatrius.schematica.handler.DownloadHandler;
 import com.github.lunatrius.schematica.proxy.ClientProxy;
 import com.github.lunatrius.schematica.reference.Reference;
 
@@ -15,6 +16,7 @@ public class MessageCapabilities implements IMessage, IMessageHandler<MessageCap
     public boolean isPrinterEnabled;
     public boolean isSaveEnabled;
     public boolean isLoadEnabled;
+    private int downloadProtocolVersion;
 
     public MessageCapabilities() {
         this(false, false, false);
@@ -24,6 +26,7 @@ public class MessageCapabilities implements IMessage, IMessageHandler<MessageCap
         this.isPrinterEnabled = isPrinterEnabled;
         this.isSaveEnabled = isSaveEnabled;
         this.isLoadEnabled = isLoadEnabled;
+        this.downloadProtocolVersion = DownloadHandler.PROTOCOL_VERSION;
     }
 
     @Override
@@ -31,6 +34,7 @@ public class MessageCapabilities implements IMessage, IMessageHandler<MessageCap
         this.isPrinterEnabled = buf.readBoolean();
         this.isSaveEnabled = buf.readBoolean();
         this.isLoadEnabled = buf.readBoolean();
+        this.downloadProtocolVersion = buf.isReadable() ? buf.readUnsignedByte() : 0;
     }
 
     @Override
@@ -38,6 +42,7 @@ public class MessageCapabilities implements IMessage, IMessageHandler<MessageCap
         buf.writeBoolean(this.isPrinterEnabled);
         buf.writeBoolean(this.isSaveEnabled);
         buf.writeBoolean(this.isLoadEnabled);
+        buf.writeByte(this.downloadProtocolVersion);
     }
 
     @Override
@@ -47,6 +52,7 @@ public class MessageCapabilities implements IMessage, IMessageHandler<MessageCap
             ClientProxy.isPendingReset = false;
         }
 
+        DownloadHandler.INSTANCE.serverProtocolVersion = message.downloadProtocolVersion;
         SchematicPrinter.INSTANCE.setEnabled(message.isPrinterEnabled);
         Schematica.proxy.isSaveEnabled = message.isSaveEnabled;
         Schematica.proxy.isLoadEnabled = message.isLoadEnabled;

@@ -22,7 +22,7 @@ public class Schematic implements ISchematic {
 
     private ItemStack icon;
     private final int[][][] blocks;
-    private final byte[][][] metadata;
+    private final char[][][] metadata;
     private final List<TileEntity> tileEntities = new ArrayList<>();
     private final List<Entity> entities = new ArrayList<>();
     private final int width;
@@ -32,7 +32,7 @@ public class Schematic implements ISchematic {
     public Schematic(final ItemStack icon, final int width, final int height, final int length) {
         this.icon = icon;
         this.blocks = new int[width][height][length];
-        this.metadata = new byte[width][height][length];
+        this.metadata = new char[width][height][length];
 
         this.width = width;
         this.height = height;
@@ -120,7 +120,7 @@ public class Schematic implements ISchematic {
             return false;
         }
 
-        this.metadata[x][y][z] = (byte) (metadata & 0x0F);
+        this.metadata[x][y][z] = (char) metadata;
         return true;
     }
 

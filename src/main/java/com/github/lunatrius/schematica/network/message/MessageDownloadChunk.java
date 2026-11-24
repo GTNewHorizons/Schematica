@@ -77,6 +77,12 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
 
     @Override
     public void fromBytes(ByteBuf buf) {
+        if (DownloadHandler.INSTANCE.schematic == null) {
+            // Legacy servers send a chunk when an unacknowledged begin packet times out.
+            buf.skipBytes(buf.readableBytes());
+            return;
+        }
+
         this.baseX = buf.readShort();
         this.baseY = buf.readShort();
         this.baseZ = buf.readShort();

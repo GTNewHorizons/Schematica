@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.function.BiConsumer;
 
+import net.blay09.mods.cookingforblockheads.block.BlockBaseKitchen;
 import net.blay09.mods.cookingforblockheads.tile.BaseKitchenTileWithInventory;
 import net.blay09.mods.cookingforblockheads.tile.TileCookingTable;
 import net.blay09.mods.cookingforblockheads.tile.TileFridge;
@@ -23,6 +24,10 @@ public final class CookingForBlockheadsSupport {
     public static final boolean SUPPORTS_DYE_SUBSTITUTES = supportsDyeSubstitutes();
 
     private CookingForBlockheadsSupport() {}
+
+    public static boolean isKitchenBlock(Block block) {
+        return block instanceof BlockBaseKitchen;
+    }
 
     public static int getDyeDamage(ItemStack stack) {
         return DyeUtils.rawDyeDamageFromStack(stack);

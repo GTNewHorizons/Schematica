@@ -109,7 +109,7 @@ public class BlockList {
                                 actual != null && BlockToItemStack.matches(actual, secondary));
                         }
                     }
-                    if (Mods.COOKING_FOR_BLOCKHEADS && block.hasTileEntity(world.getBlockMetadata(x, y, z))) {
+                    if (Mods.COOKING_FOR_BLOCKHEADS && CookingForBlockheadsSupport.isKitchenBlock(block)) {
                         CookingForBlockheadsSupport
                             .addDyeRequirement(world, x, y, z, mcWorld, wx, wy, wz, (stackDye, dyed) -> {
                                 final WrappedItemStack dye = addMaterial(blockList, stackDye, 1, dyed);

@@ -62,7 +62,7 @@ public class MessageDownloadBegin implements IMessage, IMessageHandler<MessageDo
     @Override
     public IMessage onMessage(MessageDownloadBegin message, MessageContext ctx) {
         if (DownloadHandler.INSTANCE.serverProtocolVersion != DownloadHandler.PROTOCOL_VERSION) {
-            // Withhold the acknowledgment so the old server never sends an incompatible chunk.
+            DownloadHandler.INSTANCE.schematic = null;
             final Minecraft minecraft = Minecraft.getMinecraft();
             final String messageKey = Names.Command.Download.Message.DOWNLOAD_SERVER_REQUIRES_UPDATE;
             minecraft.func_152344_a(

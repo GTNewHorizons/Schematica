@@ -2,6 +2,8 @@ package com.github.lunatrius.schematica.world.schematic;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -27,10 +29,12 @@ import org.junit.rules.TemporaryFolder;
 import com.github.lunatrius.schematica.Schematica;
 import com.github.lunatrius.schematica.api.ISchematic;
 import com.github.lunatrius.schematica.handler.DownloadHandler;
+import com.github.lunatrius.schematica.nbt.NBTHelper;
 import com.github.lunatrius.schematica.network.message.MessageCapabilities;
 import com.github.lunatrius.schematica.network.message.MessageDownloadBegin;
 import com.github.lunatrius.schematica.network.message.MessageDownloadChunk;
 import com.github.lunatrius.schematica.proxy.ServerProxy;
+import com.github.lunatrius.schematica.reference.Constants;
 import com.github.lunatrius.schematica.reference.Names;
 import com.github.lunatrius.schematica.world.storage.Schematic;
 
@@ -49,6 +53,11 @@ public class SchematicAlphaTest {
     @Test
     public void legacyFilesAndCurrentDownloadsPreserveWideBlockData() throws Exception {
         runFixture("wideBlockData");
+    }
+
+    @Test
+    public void discardsLegacyChunkSentAfterBeginTimeout() throws Exception {
+        runFixture("legacyChunkAfterBeginTimeout");
     }
 
     private void runFixture(String name) throws Exception {
@@ -136,7 +145,34 @@ public class SchematicAlphaTest {
             assertDownloadRoundTrip(source, blocks, metadata);
         }
 
-        private static void assertDownloadRoundTrip(Schematic source, Block[] blocks, int[] metadata) throws Exception {
+        public static void legacyChunkAfterBeginTimeout(File gameDir) throws ReflectiveOperationException {
+            bootstrap(gameDir);
+            final ByteBuf packet = Unpooled.buffer();
+            try {
+                // Old servers send this layout after the client refuses to acknowledge their begin packet.
+                packet.writeShort(0);
+                packet.writeShort(0);
+                packet.writeShort(0);
+                final int cells = Constants.SchematicChunk.WIDTH * Constants.SchematicChunk.HEIGHT
+                    * Constants.SchematicChunk.LENGTH;
+                for (int index = 0; index < cells; index++) {
+                    packet.writeInt(0);
+                    packet.writeByte(0);
+                }
+                ByteBufUtils.writeTag(packet, NBTHelper.writeTileEntitiesToCompound(Collections.emptyList()));
+                ByteBufUtils.writeTag(packet, NBTHelper.writeEntitiesToCompound(Collections.emptyList()));
+
+                final MessageDownloadChunk chunk = new MessageDownloadChunk();
+                chunk.fromBytes(packet);
+                assertFalse(packet.isReadable());
+                assertNull(chunk.onMessage(chunk, null));
+                assertNull(DownloadHandler.INSTANCE.schematic);
+            } finally {
+                packet.release();
+            }
+        }
+
+        private static void assertDownloadRoundTrip(Schematic source, Block[] blocks, int[] metadata) {
             final ByteBuf packet = Unpooled.buffer();
             try {
                 new MessageCapabilities(true, true, true).toBytes(packet);
@@ -153,18 +189,19 @@ public class SchematicAlphaTest {
                 begin.fromBytes(packet);
                 assertEquals(source.getWidth(), begin.width);
                 assertFalse(packet.isReadable());
+                DownloadHandler.INSTANCE.serverProtocolVersion = DownloadHandler.PROTOCOL_VERSION;
+                assertNotNull(begin.onMessage(begin, null));
 
                 packet.clear();
                 new MessageDownloadChunk(source, 0, 0, 0).toBytes(packet);
                 final MessageDownloadChunk chunk = new MessageDownloadChunk();
                 chunk.fromBytes(packet);
                 assertFalse(packet.isReadable());
-                final Schematic result = new Schematic(source.getIcon(), begin.width, begin.height, begin.length);
-                final Method copy = MessageDownloadChunk.class.getDeclaredMethod("copyToSchematic", ISchematic.class);
-                copy.setAccessible(true);
-                copy.invoke(chunk, result);
-                assertCells(result, blocks, metadata);
+                assertNotNull(chunk.onMessage(chunk, null));
+                assertCells(DownloadHandler.INSTANCE.schematic, blocks, metadata);
             } finally {
+                DownloadHandler.INSTANCE.schematic = null;
+                DownloadHandler.INSTANCE.serverProtocolVersion = 0;
                 packet.release();
             }
         }

@@ -28,7 +28,6 @@ import com.github.lunatrius.schematica.reference.Mods;
 import com.github.lunatrius.schematica.reference.Reference;
 import com.google.common.collect.Iterables;
 import com.mojang.authlib.GameProfile;
-import com.mojang.authlib.minecraft.MinecraftProfileTexture;
 import com.mojang.authlib.properties.Property;
 
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -95,6 +94,7 @@ public class BlockToItemStack {
         return matches(stack, target, false);
     }
 
+    /** Name-only skull stock can match once the profile lookup completes. */
     public static boolean matchesBlockStock(ItemStack stack, ItemStack target) {
         return matches(stack, target, true);
     }
@@ -111,7 +111,10 @@ public class BlockToItemStack {
         }
         if (isPlayerHead(target)) {
             try {
-                return matchesHeadOwner(getHeadOwner(stack), getHeadOwner(target));
+                final GameProfile actual = getHeadOwner(stack);
+                final GameProfile expected = getHeadOwner(target);
+                return matchesHeadOwner(actual, expected)
+                    || (blockStock && PlayerHeadProfiles.INSTANCE.matchesNameOnlyStock(actual, expected));
             } catch (IllegalArgumentException e) {
                 return false;
             }
@@ -152,7 +155,7 @@ public class BlockToItemStack {
             : stack.getItemDamage() & 15;
     }
 
-    private static boolean isPlayerHead(ItemStack stack) {
+    static boolean isPlayerHead(ItemStack stack) {
         return stack.getItem() == Items.skull && stack.getItemDamage() == PLAYER_SKULL;
     }
 
@@ -172,7 +175,6 @@ public class BlockToItemStack {
         if (actual == null || expected == null) {
             return actual == expected;
         }
-        // A legacy name cannot identify a saved UUID, particularly on heads with custom textures.
         if (!Objects.equals(actual.getId(), expected.getId()) || (actual.getId() == null && !actual.getName()
             .equalsIgnoreCase(expected.getName()))) {
             return false;
@@ -202,11 +204,11 @@ public class BlockToItemStack {
     }
 
     private static String getSkinUrl(GameProfile owner) {
-        final MinecraftProfileTexture skin = Minecraft.getMinecraft()
-            .func_152347_ac()
-            .getTextures(owner, false)
-            .get(MinecraftProfileTexture.Type.SKIN);
-        return skin == null ? null : skin.getUrl();
+        return PlayerHeadProfiles.skinUrl(
+            Minecraft.getMinecraft()
+                .func_152347_ac(),
+            owner,
+            false);
     }
 
     private static boolean hasOnlyCosmeticTags(ItemStack stack) {

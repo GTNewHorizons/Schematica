@@ -39,6 +39,7 @@ public class GuiSchematicMaterials extends GuiScreenBase {
     private final String strMaterialAmount = I18n.format(Names.Gui.Control.MATERIAL_AMOUNT);
 
     protected final List<BlockList.WrappedItemStack> blockList;
+    private int playerHeadStockRevision = BlockList.getPlayerHeadStockRevision();
 
     public GuiSchematicMaterials(GuiScreen guiScreen) {
         super(guiScreen);
@@ -102,6 +103,16 @@ public class GuiSchematicMaterials extends GuiScreenBase {
     @Override
     public void renderToolTip(ItemStack stack, int x, int y) {
         super.renderToolTip(stack, x, y);
+    }
+
+    @Override
+    public void updateScreen() {
+        super.updateScreen();
+        final int revision = BlockList.getPlayerHeadStockRevision();
+        if (this.playerHeadStockRevision != revision && this.mc.thePlayer != null) {
+            this.playerHeadStockRevision = revision;
+            BlockList.refreshPlayerHeadStock(this.blockList, this.mc.thePlayer);
+        }
     }
 
     @Override

@@ -123,16 +123,7 @@ public class BlockList {
         }
 
         for (WrappedItemStack wrappedItemStack : blockList) {
-            final ItemStack target = wrappedItemStack.itemStack;
-            if (player.capabilities.isCreativeMode) {
-                wrappedItemStack.inventory = -1;
-            } else {
-                for (ItemStack stack : player.inventory.mainInventory) {
-                    if (stack != null && BlockToItemStack.matches(stack, target)) {
-                        wrappedItemStack.inventory += stack.stackSize;
-                    }
-                }
-            }
+            countInventory(wrappedItemStack, player);
         }
 
         if (!player.capabilities.isCreativeMode) {
@@ -142,6 +133,34 @@ public class BlockList {
             }
         }
         return blockList;
+    }
+
+    public static int getPlayerHeadStockRevision() {
+        return PlayerHeadProfiles.INSTANCE.getRevision();
+    }
+
+    public static void refreshPlayerHeadStock(List<WrappedItemStack> materials, EntityPlayer player) {
+        for (WrappedItemStack row : materials) {
+            if (BlockToItemStack.isPlayerHead(row.itemStack)) {
+                countInventory(row, player);
+            }
+        }
+    }
+
+    private static void countInventory(WrappedItemStack row, EntityPlayer player) {
+        if (player.capabilities.isCreativeMode) {
+            row.inventory = -1;
+            return;
+        }
+        final ItemStack target = row.itemStack;
+        final boolean playerHead = BlockToItemStack.isPlayerHead(target);
+        row.inventory = 0;
+        for (ItemStack stack : player.inventory.mainInventory) {
+            if (stack != null && (playerHead ? BlockToItemStack.matchesBlockStock(stack, target)
+                : BlockToItemStack.matches(stack, target))) {
+                row.inventory += stack.stackSize;
+            }
+        }
     }
 
     private void addLooseBlockStock(List<WrappedItemStack> materials, ItemStack[] inventory) {

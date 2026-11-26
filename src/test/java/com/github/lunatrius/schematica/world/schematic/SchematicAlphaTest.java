@@ -160,18 +160,29 @@ public class SchematicAlphaTest {
             count.invoke(null, rows, inventory, verified);
             assertEquals(1, legacyRow.inventory);
             assertEquals(0, resolvedRow.inventory);
+            assertEquals(0, resolvedRow.getManualSubstitutes());
 
             stock.stackSize = 2;
             count.invoke(null, rows, inventory, verified);
             assertEquals(1, legacyRow.inventory);
-            assertEquals(1, resolvedRow.inventory);
+            final String status = resolvedRow.getFormattedAmountRequired("Required", "Available");
+            assertTrue(status, "\u00a7cRequired:1".equals(status));
+            assertEquals(0, resolvedRow.inventory);
+            assertEquals(1, resolvedRow.getManualSubstitutes());
             assertEquals(2, stock.stackSize);
 
             legacyRow.placed = 1;
             stock.stackSize = 1;
             count.invoke(null, rows, inventory, verified);
             assertEquals(0, legacyRow.inventory);
+            assertEquals(0, resolvedRow.inventory);
+            assertEquals(1, resolvedRow.getManualSubstitutes());
+
+            count.invoke(null, rows, new ItemStack[] { stock, resolved.copy() }, verified);
             assertEquals(1, resolvedRow.inventory);
+            assertEquals(0, resolvedRow.getManualSubstitutes());
+            final String exactStatus = resolvedRow.getFormattedAmountRequired("Required", "Available");
+            assertTrue(exactStatus, "\u00a7aAvailable".equals(exactStatus));
         }
 
         private static SchematicWorld skullWorld(String owner, UUID id) {

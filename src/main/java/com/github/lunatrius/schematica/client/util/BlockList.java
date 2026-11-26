@@ -175,21 +175,26 @@ public class BlockList {
             }
         }
         // Allocate exact requirements across all rows before offering the remaining stock as substitutes.
-        allocateHeadStock(heads, inventory, remaining, BlockToItemStack::matches);
-        allocateHeadStock(heads, inventory, remaining, matchesSubstitute);
+        allocateHeadStock(heads, inventory, remaining, BlockToItemStack::matches, false);
+        allocateHeadStock(heads, inventory, remaining, matchesSubstitute, true);
     }
 
     private static void allocateHeadStock(List<WrappedItemStack> heads, ItemStack[] inventory, int[] remaining,
-        BiPredicate<ItemStack, ItemStack> matches) {
+        BiPredicate<ItemStack, ItemStack> matches, boolean manual) {
         for (WrappedItemStack row : heads) {
-            int needed = row.total - row.placed - row.inventory;
+            final int shortage = row.total - row.placed - row.inventory;
+            int needed = shortage;
             for (int slot = 0; slot < inventory.length && needed > 0; slot++) {
                 if (remaining[slot] > 0 && matches.test(inventory[slot], row.itemStack)) {
                     final int allocated = Math.min(needed, remaining[slot]);
-                    row.inventory += allocated;
                     remaining[slot] -= allocated;
                     needed -= allocated;
                 }
+            }
+            if (manual) {
+                row.manualSubstitutes = shortage - needed;
+            } else {
+                row.inventory = shortage - needed;
             }
         }
     }
@@ -274,6 +279,7 @@ public class BlockList {
         public int placed;
         public int total;
         public int inventory;
+        private int manualSubstitutes;
         private int kitchenDyesNeeded;
         private int pickedBlocksNeeded;
 
@@ -349,6 +355,10 @@ public class BlockList {
             } else {
                 return String.format("\u00a7a%s", avastr);
             }
+        }
+
+        public int getManualSubstitutes() {
+            return this.manualSubstitutes;
         }
 
         private static String getFormattedStackAmount(final ItemStack itemStack, final int amount) {

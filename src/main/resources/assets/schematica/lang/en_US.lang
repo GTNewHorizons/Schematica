@@ -32,6 +32,7 @@ schematica.gui.materialname=Material
 schematica.gui.materialamount=Amount
 schematica.gui.materialrequired=Required
 schematica.gui.materialavailable=Available
+schematica.gui.materialmanualoption=Manual option: %d
 schematica.gui.materialdump=Save to file
 schematica.gui.printer=Printer
 

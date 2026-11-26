@@ -84,7 +84,7 @@ public final class BlockIdCodec {
             return addBlocks == null ? lowByte(blocks) : decodeNibbles(blocks, addBlocks);
         }
         // The former compatibility branch wrote Add alongside a packed preview in AddBlocks.
-        if (legacyAdd != null) {
+        if (legacyAdd != null && (legacyAdd.length >= count || addBlocks == null)) {
             return combine(blocks, legacyAdd, null);
         }
         if (addBlocks == null) {

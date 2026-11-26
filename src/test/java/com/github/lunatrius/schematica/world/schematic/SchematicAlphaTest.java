@@ -161,6 +161,19 @@ public class SchematicAlphaTest {
             branchTags.setByteArray(Names.NBT.DATA, new byte[] { 3, (byte) 0xFF });
             assertCells(format.readFromNBT(branchTags), new Block[] { blocks[0], blocks[1] }, new int[] { 3, 0xFF });
 
+            branchTags.setByteArray(Names.NBT.BLOCKS, new byte[] { 0x0C, 0x0D });
+            branchTags.setByteArray(Names.NBT.ADD_BLOCKS, new byte[] { 0x12 });
+            branchTags.setByteArray(Names.NBT.ADD_BLOCKS_SCHEMATICA, new byte[] { (byte) 0xFE });
+            final Block[] classicBlocks = { blocks[0], blocks[2] };
+            final int[] classicMetadata = { 3, 0xFF };
+            assertCells(format.readFromNBT(branchTags), classicBlocks, classicMetadata);
+            branchTags.setByteArray(Names.NBT.ADD_BLOCKS_SCHEMATICA, new byte[0]);
+            final ISchematic classic = format.readFromNBT(branchTags);
+            assertCells(classic, classicBlocks, classicMetadata);
+            assertTrue(format.writeToNBT(branchTags, classic, null));
+            assertFalse(branchTags.hasKey(Names.NBT.ADD_BLOCKS_SCHEMATICA));
+            assertCells(format.readFromNBT(branchTags), classicBlocks, classicMetadata);
+
             final File download = new File(gameDir, "download.schemplus");
             final Schematic single = new Schematic(source.getIcon(), 1, 1, 1);
             assertTrue(single.setBlock(0, 0, 0, blocks[0], 3));

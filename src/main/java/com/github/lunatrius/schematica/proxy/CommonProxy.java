@@ -30,7 +30,6 @@ import com.github.lunatrius.schematica.world.schematic.SchematicUtil;
 import com.github.lunatrius.schematica.world.storage.Schematic;
 
 import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
@@ -40,10 +39,8 @@ public abstract class CommonProxy {
 
     public boolean isSaveEnabled = true;
     public boolean isLoadEnabled = true;
-    public boolean GTNH = false;
 
     public void preInit(FMLPreInitializationEvent event) {
-        GTNH = Loader.isModLoaded("dreamcraft");
         Reference.logger = event.getModLog();
         ConfigurationHandler.init(event.getSuggestedConfigurationFile());
     }

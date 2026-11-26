@@ -13,12 +13,16 @@ import net.minecraft.block.BlockHopper;
 import net.minecraft.block.BlockPistonBase;
 import net.minecraft.block.BlockPumpkin;
 import net.minecraft.block.BlockRotatedPillar;
+import net.minecraft.block.BlockSlab;
 import net.minecraft.block.BlockStairs;
 import net.minecraft.block.BlockTorch;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemSlab;
 import net.minecraft.item.ItemStack;
+
+import cpw.mods.fml.common.registry.GameRegistry;
 
 public class PlacementRegistry {
 
@@ -27,13 +31,15 @@ public class PlacementRegistry {
     private final Map<Class<? extends Block>, PlacementData> classPlacementMap = new HashMap<>();
     private final Map<Block, PlacementData> blockPlacementMap = new HashMap<>();
     private final Map<Item, PlacementData> itemPlacementMap = new HashMap<>();
+    private final PlacementData halfSlab = new PlacementData(PlacementData.PlacementType.BLOCK)
+        .setOffset(0x8, 0.25f, 0.75f);
+    private final PlacementData doubleSlab = new PlacementData(PlacementData.PlacementType.BLOCK)
+        .setExtraClick((block, metadata) -> 1);
 
     public void populatePlacementMaps() {
         this.classPlacementMap.clear();
         this.blockPlacementMap.clear();
         this.itemPlacementMap.clear();
-
-        final IExtraClick extraClickDoubleSlab = (block, metadata) -> block.isOpaqueCube() ? 1 : 0;
 
         addPlacementMapping(
             BlockButton.class,
@@ -52,7 +58,8 @@ public class PlacementRegistry {
             new PlacementData(PlacementData.PlacementType.PLAYER, -1, -1, 3, 2, 5, 4));
         addPlacementMapping(
             BlockHopper.class,
-            new PlacementData(PlacementData.PlacementType.BLOCK, 0, 1, 2, 3, 4, 5).setMaskMeta(0x7));
+            new PlacementData(PlacementData.PlacementType.BLOCK, 0, 1, 2, 3, 4, 5).setMaskMeta(0x7)
+                .allowDirectClick());
         addPlacementMapping(
             BlockPistonBase.class,
             new PlacementData(PlacementData.PlacementType.PISTON, 0, 1, 2, 3, 4, 5).setMaskMeta(0x7));
@@ -61,7 +68,8 @@ public class PlacementRegistry {
             new PlacementData(PlacementData.PlacementType.PLAYER, -1, -1, 0, 2, 3, 1).setMaskMeta(0xF));
         addPlacementMapping(
             BlockRotatedPillar.class,
-            new PlacementData(PlacementData.PlacementType.BLOCK, 0, 0, 8, 8, 4, 4).setMaskMeta(0xC));
+            new PlacementData(PlacementData.PlacementType.BLOCK, 0, 0, 8, 8, 4, 4).setMaskMeta(0xC)
+                .allowDirectClick());
         addPlacementMapping(
             BlockStairs.class,
             new PlacementData(PlacementData.PlacementType.PLAYER, -1, -1, 3, 2, 1, 0).setOffset(0x4, 0.0f, 1.0f)
@@ -76,13 +84,6 @@ public class PlacementRegistry {
         addPlacementMapping(Blocks.wool, new PlacementData(PlacementData.PlacementType.BLOCK));
         addPlacementMapping(Blocks.yellow_flower, new PlacementData(PlacementData.PlacementType.BLOCK));
         addPlacementMapping(Blocks.red_flower, new PlacementData(PlacementData.PlacementType.BLOCK));
-        addPlacementMapping(
-            Blocks.double_stone_slab,
-            new PlacementData(PlacementData.PlacementType.BLOCK).setExtraClick(extraClickDoubleSlab));
-        addPlacementMapping(
-            Blocks.stone_slab,
-            new PlacementData(PlacementData.PlacementType.BLOCK).setOffset(0x8, 0.0f, 1.0f)
-                .setMaskMeta(0x7));
         addPlacementMapping(Blocks.stained_glass, new PlacementData(PlacementData.PlacementType.BLOCK));
         addPlacementMapping(Blocks.ladder, new PlacementData(PlacementData.PlacementType.BLOCK, -1, -1, 3, 2, 5, 4));
         addPlacementMapping(
@@ -102,18 +103,15 @@ public class PlacementRegistry {
         addPlacementMapping(
             Blocks.fence_gate,
             new PlacementData(PlacementData.PlacementType.PLAYER, -1, -1, 2, 0, 1, 3).setMaskMeta(0x3));
-        addPlacementMapping(Blocks.double_wooden_slab, new PlacementData(PlacementData.PlacementType.BLOCK));
-        addPlacementMapping(
-            Blocks.wooden_slab,
-            new PlacementData(PlacementData.PlacementType.BLOCK).setOffset(0x8, 0.0f, 1.0f)
-                .setMaskMeta(0x7)
-                .setExtraClick(extraClickDoubleSlab));
         addPlacementMapping(
             Blocks.anvil,
             new PlacementData(PlacementData.PlacementType.PLAYER, -1, -1, 1, 3, 0, 2).setMaskMeta(0x3));
         addPlacementMapping(Blocks.stained_hardened_clay, new PlacementData(PlacementData.PlacementType.BLOCK));
         addPlacementMapping(Blocks.carpet, new PlacementData(PlacementData.PlacementType.BLOCK));
         addPlacementMapping(Blocks.stained_glass_pane, new PlacementData(PlacementData.PlacementType.BLOCK));
+        addPlacementMapping(
+            GameRegistry.findBlock("etfuturum", "chain"),
+            new PlacementData(PlacementData.PlacementType.BLOCK, 0, 0, 2, 2, 1, 1).allowDirectClick());
         addPlacementMapping(
             Items.wooden_door,
             new PlacementData(PlacementData.PlacementType.PLAYER, -1, -1, 3, 1, 2, 0).setMaskMeta(0x7));
@@ -161,6 +159,10 @@ public class PlacementRegistry {
         final PlacementData placementDataBlock = this.blockPlacementMap.get(block);
         if (placementDataBlock != null) {
             return placementDataBlock;
+        }
+
+        if (block instanceof BlockSlab && itemStack.getItem() instanceof ItemSlab) {
+            return block.isOpaqueCube() ? this.doubleSlab : this.halfSlab;
         }
 
         for (Class<? extends Block> clazz : this.classPlacementMap.keySet()) {

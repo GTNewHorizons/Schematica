@@ -39,6 +39,7 @@ public class GuiSchematicMaterials extends GuiScreenBase {
     private final String strMaterialAmount = I18n.format(Names.Gui.Control.MATERIAL_AMOUNT);
 
     protected final List<BlockList.WrappedItemStack> blockList;
+    private int playerHeadStockRevision = BlockList.getPlayerHeadStockRevision();
 
     public GuiSchematicMaterials(GuiScreen guiScreen) {
         super(guiScreen);
@@ -105,6 +106,16 @@ public class GuiSchematicMaterials extends GuiScreenBase {
     }
 
     @Override
+    public void updateScreen() {
+        super.updateScreen();
+        final int revision = BlockList.getPlayerHeadStockRevision();
+        if (this.playerHeadStockRevision != revision && this.mc.thePlayer != null) {
+            this.playerHeadStockRevision = revision;
+            BlockList.refreshPlayerHeadStock(this.blockList, this.mc.thePlayer);
+        }
+    }
+
+    @Override
     public void drawScreen(int x, int y, float partialTicks) {
         this.guiSchematicMaterialsSlot.drawScreen(x, y, partialTicks);
 
@@ -128,7 +139,7 @@ public class GuiSchematicMaterials extends GuiScreenBase {
         for (final BlockList.WrappedItemStack wrappedItemStack : blockList) {
             maxLengthName = Math.max(
                 maxLengthName,
-                wrappedItemStack.getItemStackDisplayName()
+                wrappedItemStack.getExportDisplayName()
                     .length());
             maxSize = Math.max(maxSize, wrappedItemStack.total);
         }
@@ -141,7 +152,7 @@ public class GuiSchematicMaterials extends GuiScreenBase {
         final StringBuilder stringBuilder = new StringBuilder((maxLengthName + 1 + maxLengthSize) * blockList.size());
         final Formatter formatter = new Formatter(stringBuilder);
         for (final BlockList.WrappedItemStack wrappedItemStack : blockList) {
-            formatter.format(formatName, wrappedItemStack.getItemStackDisplayName());
+            formatter.format(formatName, wrappedItemStack.getExportDisplayName());
             stringBuilder.append(" ");
             formatter.format(formatSize, wrappedItemStack.total);
             stringBuilder.append(System.lineSeparator());

@@ -12,13 +12,13 @@ import net.minecraftforge.common.ForgeHooks;
 
 import org.lwjgl.input.Keyboard;
 
-import com.github.lunatrius.schematica.Schematica;
 import com.github.lunatrius.schematica.client.gui.control.GuiSchematicControl;
 import com.github.lunatrius.schematica.client.gui.load.GuiSchematicLoad;
 import com.github.lunatrius.schematica.client.gui.save.GuiSchematicSave;
 import com.github.lunatrius.schematica.client.renderer.RendererSchematicGlobal;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
 import com.github.lunatrius.schematica.proxy.ClientProxy;
+import com.github.lunatrius.schematica.reference.Mods;
 import com.github.lunatrius.schematica.reference.Names;
 import com.github.lunatrius.schematica.reference.Reference;
 
@@ -31,15 +31,15 @@ public class InputHandler {
 
     private static final KeyBinding KEY_BINDING_LOAD = new KeyBinding(
         Names.Keys.LOAD,
-        Schematica.proxy.GTNH ? Keyboard.KEY_NONE : Keyboard.KEY_DIVIDE,
+        Mods.GTNH ? Keyboard.KEY_NONE : Keyboard.KEY_DIVIDE,
         Names.Keys.CATEGORY);
     private static final KeyBinding KEY_BINDING_SAVE = new KeyBinding(
         Names.Keys.SAVE,
-        Schematica.proxy.GTNH ? Keyboard.KEY_NONE : Keyboard.KEY_MULTIPLY,
+        Mods.GTNH ? Keyboard.KEY_NONE : Keyboard.KEY_MULTIPLY,
         Names.Keys.CATEGORY);
     private static final KeyBinding KEY_BINDING_CONTROL = new KeyBinding(
         Names.Keys.CONTROL,
-        Schematica.proxy.GTNH ? Keyboard.KEY_NONE : Keyboard.KEY_SUBTRACT,
+        Mods.GTNH ? Keyboard.KEY_NONE : Keyboard.KEY_SUBTRACT,
         Names.Keys.CATEGORY);
     private static final KeyBinding KEY_BINDING_LAYER_INC = new KeyBinding(
         Names.Keys.LAYER_INC,

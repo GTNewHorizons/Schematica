@@ -14,18 +14,24 @@ import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.profiler.Profiler;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
+import net.minecraftforge.client.ForgeHooksClient;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 
 import com.github.lunatrius.core.util.vector.Vector3d;
 import com.github.lunatrius.core.util.vector.Vector3f;
+import com.github.lunatrius.schematica.client.compat.ArchitectureCraftSupport;
+import com.github.lunatrius.schematica.client.compat.CarpentersBlocksSupport;
+import com.github.lunatrius.schematica.client.compat.MicroblockSupport;
 import com.github.lunatrius.schematica.client.renderer.shader.ShaderProgram;
+import com.github.lunatrius.schematica.client.util.BlockToItemStack;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
 import com.github.lunatrius.schematica.handler.ConfigurationHandler;
 import com.github.lunatrius.schematica.proxy.ClientProxy;
 import com.github.lunatrius.schematica.reference.Constants;
+import com.github.lunatrius.schematica.reference.Mods;
 import com.github.lunatrius.schematica.reference.Reference;
 
 public class RendererSchematicChunk {
@@ -145,8 +151,17 @@ public class RendererSchematicChunk {
                 }
 
                 GL11.glNewList(this.glList + pass, GL11.GL_COMPILE);
-                renderBlocks(pass, minX, minY, minZ, maxX, maxY, maxZ);
-                GL11.glEndList();
+                final int previousPass = ForgeHooksClient.getWorldRenderPass();
+                try {
+                    // Multipart uses Forge's chunk-building pass to choose the parts to render.
+                    if (pass < 2) {
+                        ForgeHooksClient.worldRenderPass = pass;
+                    }
+                    renderBlocks(pass, minX, minY, minZ, maxX, maxY, maxZ);
+                } finally {
+                    ForgeHooksClient.worldRenderPass = previousPass;
+                    GL11.glEndList();
+                }
 
                 GL11.glNewList(this.glListHighlight + pass, GL11.GL_COMPILE);
                 int quadCount = RenderHelper.getQuadCount();
@@ -234,8 +249,9 @@ public class RendererSchematicChunk {
     }
 
     public void renderBlocks(int renderPass, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
-        IBlockAccess mcWorld = this.minecraft.theWorld;
+        World mcWorld = this.minecraft.theWorld;
         RenderBlocks renderBlocks = RendererSchematicGlobal.INSTANCE.renderBlocks;
+        final boolean renderMicroblocks = renderPass < 2 && Mods.FORGE_MICROBLOCK;
 
         int x, y, z, wx, wy, wz;
         int sides;
@@ -292,6 +308,15 @@ public class RendererSchematicChunk {
                             || ConfigurationHandler.isExtraAirBlock(mcBlock);
 
                         if (!isMcAirBlock) {
+                            if (renderMicroblocks && block == mcBlock && MicroblockSupport.isMultipartBlock(block)) {
+                                MicroblockSupport.renderMissingParts(
+                                    this.schematic,
+                                    mcWorld.getTileEntity(wx, wy, wz),
+                                    x,
+                                    y,
+                                    z,
+                                    renderPass);
+                            }
                             if (ConfigurationHandler.highlight && renderPass == 2) {
                                 if (isAirBlock && ConfigurationHandler.highlightAir) {
                                     zero.set(x, y, z);
@@ -325,19 +350,16 @@ public class RendererSchematicChunk {
                                     if (ConfigurationHandler.drawLines) {
                                         RenderHelper.drawCuboidOutline(zero, size, sides, 1.0f, 0.0f, 0.0f, 0.25f);
                                     }
-                                } else if (this.schematic.getBlockMetadata(x, y, z)
-                                    != mcWorld.getBlockMetadata(wx, wy, wz)) {
-                                        zero.set(x, y, z);
-                                        size.set(x + 1, y + 1, z + 1);
-                                        if (ConfigurationHandler.drawQuads) {
-                                            RenderHelper
-                                                .drawCuboidSurface(zero, size, sides, 0.75f, 0.35f, 0.0f, 0.25f);
-                                        }
-                                        if (ConfigurationHandler.drawLines) {
-                                            RenderHelper
-                                                .drawCuboidOutline(zero, size, sides, 0.75f, 0.35f, 0.0f, 0.25f);
-                                        }
+                                } else if (!matchesBlockState(block, mcWorld, x, y, z, wx, wy, wz)) {
+                                    zero.set(x, y, z);
+                                    size.set(x + 1, y + 1, z + 1);
+                                    if (ConfigurationHandler.drawQuads) {
+                                        RenderHelper.drawCuboidSurface(zero, size, sides, 0.75f, 0.35f, 0.0f, 0.25f);
                                     }
+                                    if (ConfigurationHandler.drawLines) {
+                                        RenderHelper.drawCuboidOutline(zero, size, sides, 0.75f, 0.35f, 0.0f, 0.25f);
+                                    }
+                                }
                             }
                         } else if (!isAirBlock) {
                             if (ConfigurationHandler.highlight && renderPass == 2) {
@@ -351,7 +373,7 @@ public class RendererSchematicChunk {
                                 }
                             }
 
-                            if (block != null && block.canRenderInPass(renderPass)) {
+                            if (renderPass < 2 && block != null && block.canRenderInPass(renderPass)) {
                                 renderBlocks.renderBlockByRenderType(block, x, y, z);
                             }
                         }
@@ -367,12 +389,29 @@ public class RendererSchematicChunk {
         this.minecraft.gameSettings.ambientOcclusion = ambientOcclusion;
     }
 
+    private boolean matchesBlockState(Block block, World world, int x, int y, int z, int wx, int wy, int wz) {
+        if (Mods.CARPENTERS_BLOCKS && CarpentersBlocksSupport.isCoverable(block)) {
+            return CarpentersBlocksSupport
+                .matches(block, this.schematic.getTileEntity(x, y, z), world.getTileEntity(wx, wy, wz));
+        }
+        if (Mods.FORGE_MICROBLOCK && MicroblockSupport.isMultipartBlock(block)
+            && MicroblockSupport
+                .hasMissingOtherParts(this.schematic.getTileEntity(x, y, z), world.getTileEntity(wx, wy, wz))) {
+            return false;
+        }
+        return BlockToItemStack
+            .matchesSavedState(block, this.minecraft.thePlayer, world, wx, wy, wz, this.schematic, x, y, z)
+            && (!Mods.ARCHITECTURE_CRAFT || !ArchitectureCraftSupport.isShapeBlock(block)
+                || ArchitectureCraftSupport
+                    .matchesPreview(world.getTileEntity(wx, wy, wz), this.schematic.getTileEntity(x, y, z), block));
+    }
+
     public void renderTileEntities(int renderPass) {
         if (renderPass != 0) {
             return;
         }
 
-        IBlockAccess mcWorld = this.minecraft.theWorld;
+        World mcWorld = this.minecraft.theWorld;
 
         int x, y, z;
 

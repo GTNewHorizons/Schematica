@@ -19,7 +19,10 @@ import net.minecraftforge.common.util.Constants;
 
 import com.github.lunatrius.schematica.api.ISchematic;
 import com.github.lunatrius.schematica.api.event.PreSchematicSaveEvent;
+import com.github.lunatrius.schematica.nbt.CarpentersBlocksNBT;
+import com.github.lunatrius.schematica.nbt.LegacyGregTechOre;
 import com.github.lunatrius.schematica.nbt.NBTHelper;
+import com.github.lunatrius.schematica.reference.Mods;
 import com.github.lunatrius.schematica.reference.Names;
 import com.github.lunatrius.schematica.reference.Reference;
 import com.github.lunatrius.schematica.world.storage.Schematic;
@@ -104,6 +107,17 @@ public class SchematicAlpha extends SchematicFormat {
         for (int i = 0; i < tiles.tagCount(); i++) {
             final NBTTagCompound tag = tiles.getCompoundTagAt(i);
             try {
+                if (Mods.POSTEA && "GT_TileEntity_Ores".equals(tag.getString("id"))
+                    && LegacyGregTechOre.replace(schematic, tag)) {
+                    continue;
+                }
+            } catch (Exception e) {
+                Reference.logger.debug("Could not convert a legacy GregTech ore", e);
+            }
+            try {
+                if (Mods.CARPENTERS_BLOCKS) {
+                    CarpentersBlocksNBT.remapAttributeItems(tag);
+                }
                 final TileEntity tileEntity = NBTHelper.readTileEntityFromCompound(tag);
                 if (tileEntity != null) {
                     schematic.setTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);

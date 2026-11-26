@@ -57,8 +57,9 @@ class GuiSchematicMaterialsSlot extends GuiSlot {
 
         final String itemName = wrappedItemStack.getItemStackDisplayName();
         final String amount = wrappedItemStack.getFormattedAmount();
-        final String amountrequired = wrappedItemStack
+        final String requirement = wrappedItemStack
             .getFormattedAmountRequired(strMaterialRequired, strMaterialAvailable);
+        final int statusX = x + 215 - this.minecraft.fontRenderer.getStringWidth(requirement);
 
         GuiHelper.drawItemStack(this.minecraft.renderEngine, this.minecraft.fontRenderer, x, y, itemStack);
 
@@ -69,12 +70,15 @@ class GuiSchematicMaterialsSlot extends GuiSlot {
             x + 215 - this.minecraft.fontRenderer.getStringWidth(amount),
             y + 6,
             0xFFFFFF);
-        this.guiSchematicMaterials.drawString(
-            this.minecraft.fontRenderer,
-            amountrequired,
-            x + 215 - this.minecraft.fontRenderer.getStringWidth(amountrequired),
-            y + 16,
-            0xFFFFFF);
+        this.guiSchematicMaterials.drawString(this.minecraft.fontRenderer, requirement, statusX, y + 16, 0xFFFFFF);
+
+        final int manualSubstitutes = wrappedItemStack.getManualSubstitutes();
+        if (manualSubstitutes > 0) {
+            final int labelX = x + 24;
+            final String label = I18n.format(Names.Gui.Control.MATERIAL_MANUAL_OPTION, manualSubstitutes);
+            final String fittedLabel = this.minecraft.fontRenderer.trimStringToWidth(label, statusX - labelX - 4);
+            this.guiSchematicMaterials.drawString(this.minecraft.fontRenderer, fittedLabel, labelX, y + 16, 0xFFFF55);
+        }
 
         if (mouseX > x && mouseY > y && mouseX <= x + 18 && mouseY <= y + 18) {
             this.guiSchematicMaterials.renderToolTip(itemStack, mouseX, mouseY);

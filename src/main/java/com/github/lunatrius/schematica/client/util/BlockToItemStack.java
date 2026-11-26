@@ -94,9 +94,13 @@ public class BlockToItemStack {
         return matches(stack, target, false);
     }
 
-    /** Name-only skull stock can match once the profile lookup completes. */
     public static boolean matchesBlockStock(ItemStack stack, ItemStack target) {
         return matches(stack, target, true);
+    }
+
+    /** Compares a placed item with a schematic requirement after server-side placement. */
+    public static boolean matchesPlaced(ItemStack stack, ItemStack target) {
+        return isPlayerHead(stack) && isPlayerHead(target) ? matchesHead(stack, target, true) : matches(stack, target);
     }
 
     private static boolean matches(ItemStack stack, ItemStack target, boolean blockStock) {
@@ -110,14 +114,7 @@ public class BlockToItemStack {
             return false;
         }
         if (isPlayerHead(target)) {
-            try {
-                final GameProfile actual = getHeadOwner(stack);
-                final GameProfile expected = getHeadOwner(target);
-                return matchesHeadOwner(actual, expected)
-                    || (blockStock && PlayerHeadProfiles.INSTANCE.matchesNameOnlyStock(actual, expected));
-            } catch (IllegalArgumentException e) {
-                return false;
-            }
+            return matchesHead(stack, target, false);
         }
         if (Mods.FORGE_MICROBLOCK && MicroblockSupport.isMicroblockItem(target)) {
             return MicroblockSupport.itemsMatch(stack, target);
@@ -159,6 +156,18 @@ public class BlockToItemStack {
         return stack.getItem() == Items.skull && stack.getItemDamage() == PLAYER_SKULL;
     }
 
+    // This is advisory stock for Materials. The placing server may resolve the name differently.
+    static boolean matchesNameOnlyHeadStock(ItemStack stack, ItemStack target) {
+        if (!isPlayerHead(stack)) {
+            return false;
+        }
+        try {
+            return PlayerHeadProfiles.INSTANCE.matchesNameOnlyStock(getHeadOwner(stack), getHeadOwner(target));
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
     private static GameProfile getHeadOwner(ItemStack stack) {
         final NBTTagCompound tag = stack.getTagCompound();
         if (tag == null) {
@@ -169,6 +178,22 @@ public class BlockToItemStack {
         }
         final String name = tag.hasKey(SKULL_OWNER, 8) ? tag.getString(SKULL_OWNER) : "";
         return name.isEmpty() ? null : new GameProfile(null, name);
+    }
+
+    private static boolean matchesHead(ItemStack stack, ItemStack target, boolean placed) {
+        try {
+            final GameProfile actual = getHeadOwner(stack);
+            final GameProfile expected = getHeadOwner(target);
+            // Vanilla completes legacy names on the placing server. This schematic only specified the name.
+            return (placed && PlayerHeadProfiles.isNameOnly(expected)
+                && actual != null
+                && actual.getId() != null
+                && expected.getName()
+                    .equalsIgnoreCase(actual.getName()))
+                || matchesHeadOwner(actual, expected);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     private static boolean matchesHeadOwner(GameProfile actual, GameProfile expected) {
@@ -241,7 +266,7 @@ public class BlockToItemStack {
         }
         final ItemStack actual = getItemStack(player, block, world, x, y, z);
         final ItemStack expected = getItemStack(player, block, schematic, localX, localY, localZ);
-        return actual != null && expected != null && matches(actual, expected);
+        return actual != null && expected != null && matchesPlaced(actual, expected);
     }
 
     private static boolean isBannerBlock(Block block) {

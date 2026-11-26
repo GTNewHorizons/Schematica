@@ -2,6 +2,7 @@ package com.github.lunatrius.schematica.client.util;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiPredicate;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockSlab;
@@ -80,7 +81,7 @@ public class BlockList {
                         || BlockToItemStack.matchesSavedState(block, player, mcWorld, wx, wy, wz, world, x, y, z))
                             ? BlockToItemStack.getItemStack(player, mcBlock, mcWorld, wx, wy, wz)
                             : null;
-                    final boolean complete = placed != null && BlockToItemStack.matches(placed, stack)
+                    final boolean complete = placed != null && BlockToItemStack.matchesPlaced(placed, stack)
                         && (!garageDoor || CarpentersBlocksSupport.isGarageDoorHost(mcWorld.getTileEntity(wx, wy, wz)));
                     final WrappedItemStack blockMaterial = addMaterial(blockList, stack, 1, complete);
                     if (!complete) {
@@ -122,11 +123,20 @@ public class BlockList {
             }
         }
 
-        for (WrappedItemStack wrappedItemStack : blockList) {
-            countInventory(wrappedItemStack, player);
+        for (WrappedItemStack row : blockList) {
+            if (player.capabilities.isCreativeMode) {
+                row.inventory = -1;
+            } else if (!BlockToItemStack.isPlayerHead(row.itemStack)) {
+                for (ItemStack stock : player.inventory.mainInventory) {
+                    if (stock != null && BlockToItemStack.matches(stock, row.itemStack)) {
+                        row.inventory += stock.stackSize;
+                    }
+                }
+            }
         }
 
         if (!player.capabilities.isCreativeMode) {
+            refreshPlayerHeadStock(blockList, player);
             addLooseBlockStock(blockList, player.inventory.mainInventory);
             if (Mods.COOKING_FOR_BLOCKHEADS && CookingForBlockheadsSupport.SUPPORTS_DYE_SUBSTITUTES) {
                 addKitchenDyeSubstitutes(blockList, player.inventory.mainInventory);
@@ -140,25 +150,46 @@ public class BlockList {
     }
 
     public static void refreshPlayerHeadStock(List<WrappedItemStack> materials, EntityPlayer player) {
-        for (WrappedItemStack row : materials) {
-            if (BlockToItemStack.isPlayerHead(row.itemStack)) {
-                countInventory(row, player);
-            }
+        if (!player.capabilities.isCreativeMode) {
+            countPlayerHeadStock(materials, player.inventory.mainInventory, BlockToItemStack::matchesNameOnlyHeadStock);
         }
     }
 
-    private static void countInventory(WrappedItemStack row, EntityPlayer player) {
-        if (player.capabilities.isCreativeMode) {
-            row.inventory = -1;
+    private static void countPlayerHeadStock(List<WrappedItemStack> materials, ItemStack[] inventory,
+        BiPredicate<ItemStack, ItemStack> matchesSubstitute) {
+        final List<WrappedItemStack> heads = new ArrayList<>();
+        for (WrappedItemStack row : materials) {
+            if (BlockToItemStack.isPlayerHead(row.itemStack)) {
+                row.inventory = 0;
+                heads.add(row);
+            }
+        }
+        if (heads.isEmpty()) {
             return;
         }
-        final ItemStack target = row.itemStack;
-        final boolean playerHead = BlockToItemStack.isPlayerHead(target);
-        row.inventory = 0;
-        for (ItemStack stack : player.inventory.mainInventory) {
-            if (stack != null && (playerHead ? BlockToItemStack.matchesBlockStock(stack, target)
-                : BlockToItemStack.matches(stack, target))) {
-                row.inventory += stack.stackSize;
+
+        final int[] remaining = new int[inventory.length];
+        for (int slot = 0; slot < inventory.length; slot++) {
+            if (inventory[slot] != null && BlockToItemStack.isPlayerHead(inventory[slot])) {
+                remaining[slot] = inventory[slot].stackSize;
+            }
+        }
+        // Allocate exact requirements across all rows before offering the remaining stock as substitutes.
+        allocateHeadStock(heads, inventory, remaining, BlockToItemStack::matches);
+        allocateHeadStock(heads, inventory, remaining, matchesSubstitute);
+    }
+
+    private static void allocateHeadStock(List<WrappedItemStack> heads, ItemStack[] inventory, int[] remaining,
+        BiPredicate<ItemStack, ItemStack> matches) {
+        for (WrappedItemStack row : heads) {
+            int needed = row.total - row.placed - row.inventory;
+            for (int slot = 0; slot < inventory.length && needed > 0; slot++) {
+                if (remaining[slot] > 0 && matches.test(inventory[slot], row.itemStack)) {
+                    final int allocated = Math.min(needed, remaining[slot]);
+                    row.inventory += allocated;
+                    remaining[slot] -= allocated;
+                    needed -= allocated;
+                }
             }
         }
     }

@@ -52,12 +52,15 @@ final class PlayerHeadProfiles {
         return this.revision.get();
     }
 
+    static boolean isNameOnly(GameProfile profile) {
+        return profile != null && profile.getId() == null
+            && profile.getProperties()
+                .isEmpty();
+    }
+
     boolean matchesNameOnlyStock(GameProfile stock, GameProfile saved) {
-        if (stock == null || saved == null
-            || stock.getId() != null
+        if (!isNameOnly(stock) || saved == null
             || saved.getId() == null
-            || !stock.getProperties()
-                .isEmpty()
             || !stock.getName()
                 .equalsIgnoreCase(saved.getName())) {
             return false;
@@ -92,7 +95,7 @@ final class PlayerHeadProfiles {
                 return new VerifiedProfile(profile.getName(), skinUrl(service, profile, true));
             }
         } catch (RuntimeException e) {
-            // Failed lookups stay cached briefly so printer retries do not keep hitting the session service.
+            // Cache failures briefly to avoid repeated requests when the service is unavailable.
         }
         return null;
     }

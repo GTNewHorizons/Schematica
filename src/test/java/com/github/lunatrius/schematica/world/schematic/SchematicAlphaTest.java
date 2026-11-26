@@ -11,12 +11,17 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.BiPredicate;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Bootstrap;
+import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraft.launchwrapper.LaunchClassLoader;
@@ -29,6 +34,8 @@ import org.junit.rules.TemporaryFolder;
 
 import com.github.lunatrius.schematica.Schematica;
 import com.github.lunatrius.schematica.api.ISchematic;
+import com.github.lunatrius.schematica.client.util.BlockList;
+import com.github.lunatrius.schematica.client.util.BlockList.WrappedItemStack;
 import com.github.lunatrius.schematica.client.util.BlockToItemStack;
 import com.github.lunatrius.schematica.client.world.SchematicWorld;
 import com.github.lunatrius.schematica.handler.DownloadHandler;
@@ -61,6 +68,11 @@ public class SchematicAlphaTest {
     @Test
     public void savedSkullOwnerMattersEvenWhenBlockMetadataMatches() throws Exception {
         runFixture("skullOwners");
+    }
+
+    @Test
+    public void reservesExactPlayerHeadStockBeforeSubstitutes() throws Exception {
+        runFixture("playerHeadStock");
     }
 
     @Test
@@ -108,14 +120,61 @@ public class SchematicAlphaTest {
 
         public static void skullOwners(File gameDir) throws ReflectiveOperationException {
             bootstrap(gameDir);
-            final SchematicWorld expected = skullWorld("Builder");
-            final SchematicWorld different = skullWorld("Other");
-            final SchematicWorld same = skullWorld("builder");
+            final SchematicWorld expected = skullWorld("Builder", null);
+            final SchematicWorld different = skullWorld("Other", new UUID(0, 1));
+            final SchematicWorld same = skullWorld("builder", null);
+            final SchematicWorld resolved = skullWorld("builder", new UUID(0, 2));
+            final SchematicWorld differentId = skullWorld("builder", new UUID(0, 1));
             assertFalse(BlockToItemStack.matchesSavedState(Blocks.skull, null, different, 0, 0, 0, expected, 0, 0, 0));
             assertTrue(BlockToItemStack.matchesSavedState(Blocks.skull, null, same, 0, 0, 0, expected, 0, 0, 0));
+            assertTrue(BlockToItemStack.matchesSavedState(Blocks.skull, null, resolved, 0, 0, 0, expected, 0, 0, 0));
+            assertFalse(BlockToItemStack.matchesSavedState(Blocks.skull, null, same, 0, 0, 0, resolved, 0, 0, 0));
+            assertFalse(
+                BlockToItemStack.matchesSavedState(Blocks.skull, null, differentId, 0, 0, 0, resolved, 0, 0, 0));
         }
 
-        private static SchematicWorld skullWorld(String owner) {
+        public static void playerHeadStock(File gameDir) throws ReflectiveOperationException {
+            bootstrap(gameDir);
+            final ItemStack stock = new ItemStack(Items.skull, 1, 3);
+            final NBTTagCompound tag = new NBTTagCompound();
+            tag.setString("SkullOwner", "builder");
+            stock.setTagCompound(tag);
+            final ItemStack exact = BlockToItemStack
+                .getItemStack(null, Blocks.skull, skullWorld("Builder", null), 0, 0, 0);
+            final ItemStack resolved = BlockToItemStack
+                .getItemStack(null, Blocks.skull, skullWorld("Builder", new UUID(0, 1)), 0, 0, 0);
+            assertTrue(BlockToItemStack.matchesBlockStock(stock, exact));
+            assertFalse(BlockToItemStack.matchesBlockStock(stock, resolved));
+            assertTrue(BlockToItemStack.matchesBlockStock(resolved.copy(), resolved));
+            assertTrue(BlockToItemStack.matchesPlaced(resolved, exact));
+
+            final WrappedItemStack legacyRow = new WrappedItemStack(exact, 0, 1);
+            final WrappedItemStack resolvedRow = new WrappedItemStack(resolved, 0, 1);
+            final List<WrappedItemStack> rows = Arrays.asList(resolvedRow, legacyRow);
+            final Method count = BlockList.class
+                .getDeclaredMethod("countPlayerHeadStock", List.class, ItemStack[].class, BiPredicate.class);
+            count.setAccessible(true);
+            final BiPredicate<ItemStack, ItemStack> verified = (candidate, target) -> candidate == stock
+                && target == resolved;
+            final ItemStack[] inventory = { stock };
+            count.invoke(null, rows, inventory, verified);
+            assertEquals(1, legacyRow.inventory);
+            assertEquals(0, resolvedRow.inventory);
+
+            stock.stackSize = 2;
+            count.invoke(null, rows, inventory, verified);
+            assertEquals(1, legacyRow.inventory);
+            assertEquals(1, resolvedRow.inventory);
+            assertEquals(2, stock.stackSize);
+
+            legacyRow.placed = 1;
+            stock.stackSize = 1;
+            count.invoke(null, rows, inventory, verified);
+            assertEquals(0, legacyRow.inventory);
+            assertEquals(1, resolvedRow.inventory);
+        }
+
+        private static SchematicWorld skullWorld(String owner, UUID id) {
             final Schematic schematic = new Schematic(new ItemStack(Blocks.stone), 1, 1, 1);
             assertTrue(schematic.setBlock(0, 0, 0, Blocks.skull, 1));
             final TileEntitySkull skull = new TileEntitySkull();
@@ -123,6 +182,9 @@ public class SchematicAlphaTest {
             data.setByte("SkullType", (byte) 3);
             final NBTTagCompound profile = new NBTTagCompound();
             profile.setString("Name", owner);
+            if (id != null) {
+                profile.setString("Id", id.toString());
+            }
             data.setTag("Owner", profile);
             skull.readFromNBT(data);
             schematic.setTileEntity(0, 0, 0, skull);

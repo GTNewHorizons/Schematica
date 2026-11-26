@@ -1,9 +1,12 @@
 package com.github.lunatrius.schematica.network.message;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ChatComponentTranslation;
 
 import com.github.lunatrius.schematica.api.ISchematic;
 import com.github.lunatrius.schematica.handler.DownloadHandler;
+import com.github.lunatrius.schematica.reference.Names;
 import com.github.lunatrius.schematica.world.storage.Schematic;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
@@ -34,11 +37,23 @@ public class MessageDownloadBegin implements IMessage, IMessageHandler<MessageDo
         this.width = buf.readShort();
         this.height = buf.readShort();
         this.length = buf.readShort();
+        if (buf.isReadable()) {
+            if (this.width != 0 || this.height != 0 || this.length != 0 || buf.readableBytes() != 3 * Short.BYTES) {
+                throw new IllegalArgumentException("Invalid extended schematic download dimensions");
+            }
+            this.width = buf.readShort();
+            this.height = buf.readShort();
+            this.length = buf.readShort();
+        }
     }
 
     @Override
     public void toBytes(ByteBuf buf) {
         ByteBufUtils.writeItemStack(buf, this.icon);
+        // The original decoder reads only the empty dimensions.
+        buf.writeShort(0);
+        buf.writeShort(0);
+        buf.writeShort(0);
         buf.writeShort(this.width);
         buf.writeShort(this.height);
         buf.writeShort(this.length);
@@ -46,8 +61,19 @@ public class MessageDownloadBegin implements IMessage, IMessageHandler<MessageDo
 
     @Override
     public IMessage onMessage(MessageDownloadBegin message, MessageContext ctx) {
-        DownloadHandler.INSTANCE.schematic = new Schematic(message.icon, message.width, message.height, message.length);
+        if (DownloadHandler.INSTANCE.serverProtocolVersion != DownloadHandler.PROTOCOL_VERSION) {
+            DownloadHandler.INSTANCE.schematic = null;
+            final Minecraft minecraft = Minecraft.getMinecraft();
+            final String messageKey = Names.Command.Download.Message.DOWNLOAD_SERVER_REQUIRES_UPDATE;
+            minecraft.func_152344_a(
+                () -> minecraft.ingameGUI.getChatGUI()
+                    .printChatMessageWithOptionalDeletion(
+                        new ChatComponentTranslation(messageKey),
+                        messageKey.hashCode()));
+            return null;
+        }
 
-        return new MessageDownloadBeginAck();
+        DownloadHandler.INSTANCE.schematic = new Schematic(message.icon, message.width, message.height, message.length);
+        return new MessageDownloadBeginAck(DownloadHandler.PROTOCOL_VERSION);
     }
 }

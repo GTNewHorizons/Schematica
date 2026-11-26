@@ -57,6 +57,7 @@ public class SchematicAlpha extends SchematicFormat {
                 "Schematic block arrays have " + localBlocks.length + " entries, expected at least " + size);
         }
 
+        byte[] highMetadata = readHighMetadata(tagCompound, localMetadata.length);
         int[] blockIds = BlockIdCodec
             .decode(localBlocks, addBlocks, legacyAdd, addBlocksHigh, blockIdBytes, schemplusFile);
         Map<Integer, Integer> oldToNew = readMapping(tagCompound);
@@ -72,15 +73,38 @@ public class SchematicAlpha extends SchematicFormat {
                         blockId = mapped;
                     }
                     int meta = localMetadata[index] & 0xFF;
+                    if (highMetadata != null) {
+                        meta |= (highMetadata[index] & 0xFF) << 8;
+                    }
                     schematic.setBlock(x, y, z, BLOCK_REGISTRY.getObjectById(blockId), meta);
                 }
             }
         }
 
-        NBTTagList tileEntitiesList = tagCompound.getTagList(Names.NBT.TILE_ENTITIES, Constants.NBT.TAG_COMPOUND);
-        for (int i = 0; i < tileEntitiesList.tagCount(); i++) {
+        loadTiles(tagCompound, schematic);
+        return schematic;
+    }
+
+    private static byte[] readHighMetadata(NBTTagCompound tag, int length) {
+        if (!tag.hasKey(Names.NBT.DATA_HIGH)) {
+            return null;
+        }
+        if (!tag.hasKey(Names.NBT.DATA_HIGH, Constants.NBT.TAG_BYTE_ARRAY)) {
+            throw new IllegalArgumentException("Invalid " + Names.NBT.DATA_HIGH + " type");
+        }
+        final byte[] metadata = tag.getByteArray(Names.NBT.DATA_HIGH);
+        if (metadata.length != length) {
+            throw new IllegalArgumentException("Invalid " + Names.NBT.DATA_HIGH + " length");
+        }
+        return metadata;
+    }
+
+    private static void loadTiles(NBTTagCompound tagCompound, ISchematic schematic) {
+        final NBTTagList tiles = tagCompound.getTagList(Names.NBT.TILE_ENTITIES, Constants.NBT.TAG_COMPOUND);
+        for (int i = 0; i < tiles.tagCount(); i++) {
+            final NBTTagCompound tag = tiles.getCompoundTagAt(i);
             try {
-                TileEntity tileEntity = NBTHelper.readTileEntityFromCompound(tileEntitiesList.getCompoundTagAt(i));
+                final TileEntity tileEntity = NBTHelper.readTileEntityFromCompound(tag);
                 if (tileEntity != null) {
                     schematic.setTileEntity(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);
                 }
@@ -88,8 +112,6 @@ public class SchematicAlpha extends SchematicFormat {
                 Reference.logger.error("TileEntity failed to load properly!", e);
             }
         }
-
-        return schematic;
     }
 
     @Override
@@ -109,6 +131,7 @@ public class SchematicAlpha extends SchematicFormat {
         int size = width * length * height;
         int[] blockIds = new int[size];
         byte[] localMetadata = new byte[size];
+        byte[] highMetadata = null;
         Map<String, Integer> mappings = new HashMap<>();
         boolean loggedTruncation = false;
 
@@ -132,7 +155,14 @@ public class SchematicAlpha extends SchematicFormat {
                         }
                     }
                     blockIds[index] = blockId;
-                    localMetadata[index] = (byte) schematic.getBlockMetadata(x, y, z);
+                    int metadata = schematic.getBlockMetadata(x, y, z);
+                    localMetadata[index] = (byte) metadata;
+                    if ((metadata >>> 8) != 0) {
+                        if (highMetadata == null) {
+                            highMetadata = new byte[size];
+                        }
+                        highMetadata[index] = (byte) (metadata >>> 8);
+                    }
                     if (block != null) {
                         String name = BLOCK_REGISTRY.getNameForObject(block);
                         if (!mappings.containsKey(name)) {
@@ -167,6 +197,9 @@ public class SchematicAlpha extends SchematicFormat {
                     int bedrockId = BLOCK_REGISTRY.getId(Blocks.bedrock);
                     blockIds[pos] = bedrockId < 0 ? 0 : bedrockId;
                     localMetadata[pos] = 0;
+                    if (highMetadata != null) {
+                        highMetadata[pos] = 0;
+                    }
                 }
             }
         }
@@ -191,7 +224,17 @@ public class SchematicAlpha extends SchematicFormat {
         tagCompound.setString(Names.NBT.MATERIALS, Names.NBT.FORMAT_ALPHA);
         tagCompound.setByteArray(Names.NBT.BLOCKS, encoded.blocks);
         tagCompound.setByteArray(Names.NBT.DATA, localMetadata);
-        if (encoded.blockIdBytes > 1) {
+        if (highMetadata != null) {
+            tagCompound.setByteArray(Names.NBT.DATA_HIGH, highMetadata);
+        } else {
+            tagCompound.removeTag(Names.NBT.DATA_HIGH);
+        }
+        tagCompound.removeTag(Names.NBT.ADD_BLOCKS_SCHEMATICA);
+        tagCompound.removeTag(Names.NBT.BLOCK_ID_BYTES);
+        tagCompound.removeTag(Names.NBT.ADD_BLOCKS);
+        tagCompound.removeTag(Names.NBT.ADD_BLOCKS_HIGH);
+        // A one-cell packed array otherwise looks like a legacy .schemplus high byte.
+        if (encoded.blockIdBytes > 1 || (size == 1 && encoded.addBlocks != null)) {
             tagCompound.setByte(Names.NBT.BLOCK_ID_BYTES, (byte) encoded.blockIdBytes);
         }
         if (encoded.addBlocks != null) {
@@ -206,6 +249,8 @@ public class SchematicAlpha extends SchematicFormat {
         NBTTagCompound extendedMetadata = event.extendedMetadata;
         if (!extendedMetadata.hasNoTags()) {
             tagCompound.setTag(Names.NBT.EXTENDED_METADATA, extendedMetadata);
+        } else {
+            tagCompound.removeTag(Names.NBT.EXTENDED_METADATA);
         }
 
         return true;

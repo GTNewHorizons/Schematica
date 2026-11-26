@@ -24,15 +24,17 @@ import io.netty.buffer.ByteBuf;
 public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDownloadChunk, IMessage> {
 
     public static final FMLControlledNamespacedRegistry<Block> BLOCK_REGISTRY = GameData.getBlockRegistry();
+    private static final int CELL_COUNT = Constants.SchematicChunk.WIDTH * Constants.SchematicChunk.HEIGHT
+        * Constants.SchematicChunk.LENGTH;
 
     public int baseX;
     public int baseY;
     public int baseZ;
 
-    public int[][][] blocks;
-    public byte[][][] metadata;
-    public List<TileEntity> tileEntities;
-    public List<Entity> entities;
+    private final int[] blockIds = new int[CELL_COUNT];
+    private final char[] metadata = new char[CELL_COUNT];
+    private List<TileEntity> tileEntities = new ArrayList<>();
+    private List<Entity> entities = new ArrayList<>();
 
     public MessageDownloadChunk() {}
 
@@ -41,17 +43,13 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
         this.baseY = baseY;
         this.baseZ = baseZ;
 
-        this.blocks = new int[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
-        this.metadata = new byte[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
-        this.tileEntities = new ArrayList<>();
-        this.entities = new ArrayList<>();
-
+        int index = 0;
         for (int x = 0; x < Constants.SchematicChunk.WIDTH; x++) {
             for (int y = 0; y < Constants.SchematicChunk.HEIGHT; y++) {
-                for (int z = 0; z < Constants.SchematicChunk.LENGTH; z++) {
+                for (int z = 0; z < Constants.SchematicChunk.LENGTH; z++, index++) {
                     final Block block = schematic.getBlock(baseX + x, baseY + y, baseZ + z);
-                    this.blocks[x][y][z] = BLOCK_REGISTRY.getId(block);
-                    this.metadata[x][y][z] = (byte) schematic.getBlockMetadata(baseX + x, baseY + y, baseZ + z);
+                    this.blockIds[index] = BLOCK_REGISTRY.getId(block);
+                    this.metadata[index] = (char) schematic.getBlockMetadata(baseX + x, baseY + y, baseZ + z);
                     final TileEntity tileEntity = schematic.getTileEntity(baseX + x, baseY + y, baseZ + z);
                     if (tileEntity != null) {
                         this.tileEntities.add(tileEntity);
@@ -62,14 +60,12 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
     }
 
     private void copyToSchematic(final ISchematic schematic) {
+        int index = 0;
         for (int x = 0; x < Constants.SchematicChunk.WIDTH; x++) {
             for (int y = 0; y < Constants.SchematicChunk.HEIGHT; y++) {
-                for (int z = 0; z < Constants.SchematicChunk.LENGTH; z++) {
-                    int id = this.blocks[x][y][z];
-                    byte meta = this.metadata[x][y][z];
-                    Block block = BLOCK_REGISTRY.getObjectById(id);
-
-                    schematic.setBlock(this.baseX + x, this.baseY + y, this.baseZ + z, block, meta);
+                for (int z = 0; z < Constants.SchematicChunk.LENGTH; z++, index++) {
+                    final Block block = BLOCK_REGISTRY.getObjectById(this.blockIds[index]);
+                    schematic.setBlock(this.baseX + x, this.baseY + y, this.baseZ + z, block, this.metadata[index]);
                 }
             }
         }
@@ -81,22 +77,19 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
 
     @Override
     public void fromBytes(ByteBuf buf) {
+        if (DownloadHandler.INSTANCE.schematic == null) {
+            // Legacy servers send a chunk when an unacknowledged begin packet times out.
+            buf.skipBytes(buf.readableBytes());
+            return;
+        }
+
         this.baseX = buf.readShort();
         this.baseY = buf.readShort();
         this.baseZ = buf.readShort();
 
-        this.blocks = new int[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
-        this.metadata = new byte[Constants.SchematicChunk.WIDTH][Constants.SchematicChunk.HEIGHT][Constants.SchematicChunk.LENGTH];
-        this.tileEntities = new ArrayList<>();
-        this.entities = new ArrayList<>();
-
-        for (int x = 0; x < Constants.SchematicChunk.WIDTH; x++) {
-            for (int y = 0; y < Constants.SchematicChunk.HEIGHT; y++) {
-                for (int z = 0; z < Constants.SchematicChunk.LENGTH; z++) {
-                    this.blocks[x][y][z] = buf.readInt();
-                    this.metadata[x][y][z] = buf.readByte();
-                }
-            }
+        for (int index = 0; index < CELL_COUNT; index++) {
+            this.blockIds[index] = buf.readInt();
+            this.metadata[index] = (char) buf.readUnsignedShort();
         }
 
         final NBTTagCompound compound = ByteBufUtils.readTag(buf);
@@ -112,15 +105,9 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
         buf.writeShort(this.baseY);
         buf.writeShort(this.baseZ);
 
-        // 32-bit block ids. The previous packet used a signed short, so the client
-        // and the server both have to be on this build before a download will decode.
-        for (int x = 0; x < Constants.SchematicChunk.WIDTH; x++) {
-            for (int y = 0; y < Constants.SchematicChunk.HEIGHT; y++) {
-                for (int z = 0; z < Constants.SchematicChunk.LENGTH; z++) {
-                    buf.writeInt(this.blocks[x][y][z]);
-                    buf.writeByte(this.metadata[x][y][z]);
-                }
-            }
+        for (int index = 0; index < CELL_COUNT; index++) {
+            buf.writeInt(this.blockIds[index]);
+            buf.writeShort(this.metadata[index]);
         }
 
         final NBTTagCompound compound = NBTHelper.writeTileEntitiesToCompound(this.tileEntities);
@@ -132,7 +119,11 @@ public class MessageDownloadChunk implements IMessage, IMessageHandler<MessageDo
 
     @Override
     public IMessage onMessage(MessageDownloadChunk message, MessageContext ctx) {
-        message.copyToSchematic(DownloadHandler.INSTANCE.schematic);
+        final ISchematic schematic = DownloadHandler.INSTANCE.schematic;
+        if (schematic == null) {
+            return null;
+        }
+        message.copyToSchematic(schematic);
 
         return new MessageDownloadChunkAck(message.baseX, message.baseY, message.baseZ);
     }

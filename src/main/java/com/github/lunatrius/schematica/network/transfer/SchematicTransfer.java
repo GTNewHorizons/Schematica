@@ -37,6 +37,7 @@ public class SchematicTransfer {
     public State state = State.BEGIN_WAIT;
     public int timeout = 0;
     public int retries = 0;
+    public int clientProtocolVersion;
 
     public int baseX = 0;
     public int baseY = 0;
